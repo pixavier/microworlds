@@ -10,6 +10,7 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 [Physical twin](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_physical_twin.xml)
 
+[Instant messaging bridge](https://raw.githubusercontent.com/pixavier/microworlds/main/tools/telegram_bridge.json)
 
 ## Relation with Minimum Viable Digital Twins
 
