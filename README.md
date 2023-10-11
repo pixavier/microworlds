@@ -8,7 +8,7 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 [Mental model digital twin](https://pixavier.github.io/snap/pyret/fan00.html)
 
-[Physical twin](https://snap.berkeley.edu/snap/snap.html#run:https://raw.githubusercontent.com/pixavier/microworlds/mws/fan_physical_twin.xml)
+[Physical twin](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_physical_twin.xml)
 
 
 ## Relation with Minimum Viable Digital Twins
