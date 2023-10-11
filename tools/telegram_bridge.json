@@ -1,0 +1,186 @@
+[
+    {
+        "id": "22ad87037f9861ca",
+        "type": "tab",
+        "label": "TelegramBridge",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "c66f96abbeb7356e",
+        "type": "telegram receiver",
+        "z": "22ad87037f9861ca",
+        "name": "Bot Ind40",
+        "bot": "edd064db6c2056f3",
+        "saveDataDir": "",
+        "filterCommands": false,
+        "x": 180,
+        "y": 140,
+        "wires": [
+            [
+                "7eea28ce28903253"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "7eea28ce28903253",
+        "type": "function",
+        "z": "22ad87037f9861ca",
+        "name": "",
+        "func": "msg.payload = `{\"from\":\"${msg.originalMessage.from.first_name}\",\"msg\":\"${msg.payload.content}\"}`;\nmsg.topic = 'fromTelegram';\n// node.warn(msg);\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 140,
+        "wires": [
+            [
+                "12ed557f2e17bada"
+            ]
+        ]
+    },
+    {
+        "id": "12ed557f2e17bada",
+        "type": "mqtt out",
+        "z": "22ad87037f9861ca",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "853aed2585ca6759",
+        "x": 530,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "c9e3072dcdac9bda",
+        "type": "mqtt in",
+        "z": "22ad87037f9861ca",
+        "name": "mqtt",
+        "topic": "toTelegram",
+        "qos": "2",
+        "datatype": "auto",
+        "broker": "853aed2585ca6759",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 170,
+        "y": 260,
+        "wires": [
+            [
+                "b4a553798c05b8b3",
+                "642ea55731d95274"
+            ]
+        ]
+    },
+    {
+        "id": "0e58d141025aad96",
+        "type": "telegram sender",
+        "z": "22ad87037f9861ca",
+        "name": "Bot Ind40",
+        "bot": "edd064db6c2056f3",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 540,
+        "y": 260,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b4a553798c05b8b3",
+        "type": "function",
+        "z": "22ad87037f9861ca",
+        "name": "",
+        "func": "\nlet mess = msg.payload;\nmsg.payload = {};\nmsg.payload.type = \"message\";\nmsg.payload.content = mess;\nmsg.payload.chatId = '-549167413';\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 260,
+        "wires": [
+            [
+                "0e58d141025aad96"
+            ]
+        ]
+    },
+    {
+        "id": "642ea55731d95274",
+        "type": "debug",
+        "z": "22ad87037f9861ca",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 370,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "edd064db6c2056f3",
+        "type": "telegram bot",
+        "botname": "Ind40",
+        "usernames": "",
+        "chatids": "",
+        "baseapiurl": "",
+        "updatemode": "polling",
+        "pollinterval": "300",
+        "usesocks": false,
+        "sockshost": "",
+        "socksprotocol": "socks5",
+        "socksport": "6667",
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbotport": "8443",
+        "publicbotport": "8443",
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
+        "id": "853aed2585ca6759",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "broker.emqx.io",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": ""
+    }
+]
