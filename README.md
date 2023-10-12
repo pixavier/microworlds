@@ -12,6 +12,8 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 [Instant messaging bridge (Node-RED)](https://raw.githubusercontent.com/pixavier/microworlds/main/tools/telegram_bridge.json)
 
+[Instant messaging integration](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/telegram_bridge.xml)
+
 ## Relation with Minimum Viable Digital Twins
 
 http://vps656540.ovh.net/ejemplos
