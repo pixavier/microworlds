@@ -11,12 +11,12 @@
         "id": "c66f96abbeb7356e",
         "type": "telegram receiver",
         "z": "22ad87037f9861ca",
-        "name": "Bot Ind40",
+        "name": "Bot",
         "bot": "edd064db6c2056f3",
         "saveDataDir": "",
         "filterCommands": false,
-        "x": 180,
-        "y": 140,
+        "x": 170,
+        "y": 160,
         "wires": [
             [
                 "7eea28ce28903253"
@@ -28,15 +28,15 @@
         "id": "7eea28ce28903253",
         "type": "function",
         "z": "22ad87037f9861ca",
-        "name": "",
-        "func": "msg.payload = `{\"from\":\"${msg.originalMessage.from.first_name}\",\"msg\":\"${msg.payload.content}\"}`;\nmsg.topic = 'fromTelegram';\n// node.warn(msg);\nreturn msg;\n",
+        "name": "from bot to Snap!",
+        "func": "global.set('chatId', msg.payload.chatId);\nnode.warn(msg.payload);\nmsg.payload = `{\"from\":\"${msg.originalMessage.from.first_name}\",\"msg\":\"${msg.payload.content}\"}`;\nreturn msg;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 360,
-        "y": 140,
+        "x": 390,
+        "y": 160,
         "wires": [
             [
                 "12ed557f2e17bada"
@@ -47,8 +47,8 @@
         "id": "12ed557f2e17bada",
         "type": "mqtt out",
         "z": "22ad87037f9861ca",
-        "name": "",
-        "topic": "",
+        "name": "Snap!",
+        "topic": "botname/from",
         "qos": "",
         "retain": "",
         "respTopic": "",
@@ -57,16 +57,16 @@
         "correl": "",
         "expiry": "",
         "broker": "853aed2585ca6759",
-        "x": 530,
-        "y": 140,
+        "x": 610,
+        "y": 160,
         "wires": []
     },
     {
         "id": "c9e3072dcdac9bda",
         "type": "mqtt in",
         "z": "22ad87037f9861ca",
-        "name": "mqtt",
-        "topic": "toTelegram",
+        "name": "Snap!",
+        "topic": "botname/to",
         "qos": "2",
         "datatype": "auto",
         "broker": "853aed2585ca6759",
@@ -78,8 +78,7 @@
         "y": 260,
         "wires": [
             [
-                "b4a553798c05b8b3",
-                "642ea55731d95274"
+                "b4a553798c05b8b3"
             ]
         ]
     },
@@ -87,11 +86,11 @@
         "id": "0e58d141025aad96",
         "type": "telegram sender",
         "z": "22ad87037f9861ca",
-        "name": "Bot Ind40",
+        "name": "Bot",
         "bot": "edd064db6c2056f3",
         "haserroroutput": false,
         "outputs": 1,
-        "x": 540,
+        "x": 610,
         "y": 260,
         "wires": [
             []
@@ -101,14 +100,14 @@
         "id": "b4a553798c05b8b3",
         "type": "function",
         "z": "22ad87037f9861ca",
-        "name": "",
-        "func": "\nlet mess = msg.payload;\nmsg.payload = {};\nmsg.payload.type = \"message\";\nmsg.payload.content = mess;\nmsg.payload.chatId = '-549167413';\nreturn msg;\n",
+        "name": "from Snap! to bot",
+        "func": "let mess = msg.payload;\nmsg.payload = {};\nmsg.payload.type = \"message\";\nmsg.payload.content = mess;\nlet chatId = global.get('chatId');\nif (chatId) msg.payload.chatId = chatId;\nreturn msg;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 360,
+        "x": 390,
         "y": 260,
         "wires": [
             [
@@ -117,19 +116,13 @@
         ]
     },
     {
-        "id": "642ea55731d95274",
-        "type": "debug",
+        "id": "031b839b69a4fa71",
+        "type": "comment",
         "z": "22ad87037f9861ca",
-        "name": "",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 370,
-        "y": 200,
+        "name": "Adjust topic fields in the Snap! nodes",
+        "info": "",
+        "x": 260,
+        "y": 60,
         "wires": []
     },
     {
