@@ -8,7 +8,9 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 [Mental model digital twin](https://pixavier.github.io/snap/pyret/fan00.html)
 
-[Physical twin digitally controlled](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_physical_twin.xml)
+[Physical twin digitally controlled (Fan)](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_physical_twin.xml)
+
+[Physical twin digitally controlled (Floating ball)](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_floating_ball.xml)
 
 [Instant messaging bridge (Node-RED)](https://raw.githubusercontent.com/pixavier/microworlds/main/tools/telegram_bridge.json)
 
