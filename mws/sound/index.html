@@ -24,7 +24,6 @@
 		let noiseMeterEl = document.getElementById('noiseMeter');
 		
 		window.onload = async () => {
-			startButtonEl.disabled = true;
 			let stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 			let audioContext = new AudioContext();
 			let mediaStreamAudioSourceNode = audioContext.createMediaStreamSource(stream);
