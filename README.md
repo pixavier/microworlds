@@ -16,6 +16,8 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 [Instant messaging integration](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/telegram_bridge.xml)
 
+[Solar System](https://pixavier.github.io/snap/snap.html#open:pyret/minimeta/solar.xml)
+
 ## Relation with Minimum Viable Digital Twins
 
 http://vps656540.ovh.net/ejemplos
