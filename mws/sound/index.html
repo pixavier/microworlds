@@ -37,7 +37,7 @@
 				let sumSquares = 0.0;
 				for (let amplitude of pcmData) { sumSquares += amplitude*amplitude; }
 				let measure = parseInt(Math.sqrt(sumSquares / pcmData.length) * 400);
-				measure = measure <= 100; measure : 100;
+				measure = measure <= 100 ? measure : 100;
 				noiseMeterEl.value = measure > 100 ? 100 : measure;
 				
 				let t = Date.now();
