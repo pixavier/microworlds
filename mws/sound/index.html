@@ -41,7 +41,7 @@
 				
 				let t = Date.now();
 				if (t - tAnt > 1000) {
-					client.publish("name/pwm", '' + measure);
+					client.publish("name/sound", '' + measure);
 					console.log(measure);
 					tAnt = t;
 				}
