@@ -10,7 +10,7 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 [Physical twin digitally controlled (Fan)](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_physical_twin.xml)
 
-[Physical twin digitally controlled (Floating ball)](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_floating_ball.xml)
+[Physical twin digitally controlled ("Ou com balla" - Floating ball)](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/Ou_com_balla.xml)
 
 [Instant messaging bridge (Node-RED)](https://raw.githubusercontent.com/pixavier/microworlds/main/tools/telegram_bridge.json)
 
