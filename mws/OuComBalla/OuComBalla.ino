@@ -2,8 +2,8 @@
 #include "PubSubClient.h"
 #include <analogWrite.h>
 
-const char* ssid = "iotcat";
-const char* password = "1234567890a";
+const char* ssid = "SSID";
+const char* password = "KEY";
 const char* mqttServer = "broker.emqx.io";
 int port = 1883;
 String stMac;
