@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Microworlds</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script src="https://pixavier.github.io/src/morphic.js"></script>
+        <script src="https://pixavier.github.io/src/symbols.js"></script>
+        <script src="https://pixavier.github.io/src/widgets.js"></script>
+        <script src="https://pixavier.github.io/src/blocks.js"></script>
+        <script src="https://pixavier.github.io/src/threads.js"></script>
+        <script src="https://pixavier.github.io/src/objects.js"></script>
+        <script src="https://pixavier.github.io/src/scenes.js"></script>
+        <script src="https://pixavier.github.io/src/gui.js"></script>
+        <script src="https://pixavier.github.io/src/paint.js"></script>
+        <script src="https://pixavier.github.io/src/lists.js"></script>
+        <script src="https://pixavier.github.io/src/byob.js"></script>
+        <script src="https://pixavier.github.io/src/tables.js"></script>
+        <script src="https://pixavier.github.io/src/sketch.js"></script>
+        <script src="https://pixavier.github.io/src/video.js"></script>
+        <script src="https://pixavier.github.io/src/maps.js"></script>
+        <script src="https://pixavier.github.io/src/extensions.js?"></script>
+        <script src="https://pixavier.github.io/src/xml.js"></script>
+        <script src="https://pixavier.github.io/src/store.js"></script>
+        <script src="https://pixavier.github.io/src/locale.js"></script>
+        <script src="https://pixavier.github.io/src/cloud.js"></script>
+        <script src="https://pixavier.github.io/src/api.js"></script>
+        <script src="https://pixavier.github.io/src/sha512.js"></script>
+        <script src="https://pixavier.github.io/src/FileSaver.min.js"></script>
+        <script>
+            var world;
+			var ide;
+            window.onload = function () {
+                ide = new IDE_Morph({
+                        path: 'https://pixavier.github.io/',
+                        load: 'fan_mw_03.xml',
+                        design: "flat",
+                        border: 1,
+						mode: 'edit',
+                        hideControls: true,
+                        hideCategories: true,
+                        noSpriteEdits: true,
+                        noImports: true,
+                        noOwnBlocks: true,
+                        noOwnVariables: true,
+                        noRingify: true,
+                        noUserSettings: true,
+                        noDevWarning: true
+                    }),
+                    loop = () => {
+                        requestAnimationFrame(loop);
+                        world.doOneCycle();
+                    };
+                world = new WorldMorph(document.getElementById('world'), false);
+                ide.openIn(world);
+                requestAnimationFrame(loop);
+/*				
+				console.dir(ide);
+				setTimeout(() => {
+					ide.stage.dimensions.y = 450; 
+					ide.toggleStageSize(true, 1);
+				}, 500);
+				setTimeout(() => {
+					ide.palette.contents.scrollFrame.adjustScrollBars();
+					ide.refreshIDE();
+				}, 1000);
+*/
+            };
+        </script>
+    </head>
+    <body>
+		<h2>Fan Microworld View (Level 3) &nbsp;&nbsp;&nbsp;-&nbsp;&nbsp;&nbsp; <a href="fan04.html">Next Level >></a></h2>
+		<br><br><br><br>
+		<div align="center">
+			<canvas id="world" tabindex="1" width="1200" height="510"></canvas>
+		</div>
+    </body>
+</html>
