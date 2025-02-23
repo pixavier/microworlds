@@ -6,7 +6,7 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 ## Continuum of microworld views:
 
-[Mental model digital twin](https://pixavier.github.io/snap/pyret/fan00.html)
+[Mental model digital twin](pyret/fan00.html)
 
 [Physical twin digitally controlled (Fan)](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_physical_twin.xml)
 
@@ -16,7 +16,7 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 [Instant messaging integration](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/telegram_bridge.xml)
 
-[Solar System](https://pixavier.github.io/snap/snap.html#open:pyret/minimeta/solar.xml)
+[Solar System](https://pixavier.github.io/snap/snap.html#open:https://pixavier.github.io/snap/pyret/minimeta/solar.xml)
 
 ## Relation with Minimum Viable Digital Twins
 
