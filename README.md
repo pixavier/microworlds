@@ -6,7 +6,7 @@ https://www.youtube.com/watch?v=bcbM8aeqKs8
 
 ## Continuum of microworld views:
 
-[Mental model digital twin](pyret/fan00.html)
+[Mental model digital twin](mws/pyret/fan00.html)
 
 [Physical twin digitally controlled (Fan)](https://snap.berkeley.edu/snap/snap.html#open:https://raw.githubusercontent.com/pixavier/microworlds/main/mws/fan_physical_twin.xml)
 
