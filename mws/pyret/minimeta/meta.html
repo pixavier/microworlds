@@ -59,6 +59,7 @@ Event name: <input type="text" id="evt" size="8"> Data: <input type="text"  size
 
 import * as THREE from 'three';
 import {OrbitControls} from './libs/OrbitControls.js';
+import {GLTFLoader} from './libs/GLTFLoader.js';
 import {STLLoader} from './libs/STLLoader.js';
 import {STLExporter} from './libs/STLExporter.js';
 import {FontLoader} from './libs/FontLoader.js';
@@ -118,6 +119,10 @@ function pmessage(data) {
 		
 		if (op == 'createPolyline') {
 			res = createPolyline(param);
+		}
+		
+		if (op == 'loadGltf') {
+			res = loadGltf(param);	
 		}
 		
 		if (op == 'loadStl') {
@@ -816,6 +821,37 @@ function createSpline(param) {
 		obj.add(curveObject);
 	}
 	return res;
+}
+
+function loadGltf(param) {
+	let res = true;
+	let filename = param.filename;
+	let name = param.name;
+	let snapType = param.type;
+    
+	res = checkUniqueNameFirstLevel (window.meta4snap.scene, name);
+	if (res) {
+		let position = [0,0,0];
+		let scale = [0.05, 0.05, 0.05];	
+		let loader = new GLTFLoader();
+		let path = '';
+		if (!filename.startsWith('http://') && !filename.startsWith('https://') && !filename.startsWith('file://')) {
+			path = 	'./libs/objs/';
+		}
+		loader.load(
+		path + filename,
+		(gltf) => {
+		  const obj = gltf.scene;
+		  obj.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+		  obj.position.set(...position);
+		  obj.scale.set(...scale);
+		  window.meta4snap.scene.add(obj);
+		},
+		undefined,
+		(err) => console.error(`Error cargando ${path + filename}:`, err)
+		);
+	}
+	return true;
 }
 
 function loadStl(param) {
