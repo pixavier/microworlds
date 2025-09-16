@@ -823,36 +823,119 @@ function createSpline(param) {
 	return res;
 }
 
-function loadGltf(param) {
+function loadGltf_ant(param) {
 	let res = true;
 	let filename = param.filename;
 	let name = param.name;
 	let snapType = param.type;
+	let position = [0,0,0];
+	let scale = [1, 1, 1];	
     
 	res = checkUniqueNameFirstLevel (window.meta4snap.scene, name);
 	if (res) {
-		let position = [0,0,0];
-		let scale = [0.05, 0.05, 0.05];	
 		let loader = new GLTFLoader();
 		let path = '';
 		if (!filename.startsWith('http://') && !filename.startsWith('https://') && !filename.startsWith('file://')) {
 			path = 	'./libs/objs/';
 		}
 		loader.load(
-		path + filename,
-		(gltf) => {
-		  const obj = gltf.scene;
-		  obj.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-		  obj.position.set(...position);
-		  obj.scale.set(...scale);
-		  window.meta4snap.scene.add(obj);
-		},
-		undefined,
-		(err) => console.error(`Error cargando ${path + filename}:`, err)
+			path + filename,
+			(gltf) => {
+			  let obj = gltf.scene;
+			  obj.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; }});
+			  obj.position.set(...position);
+			  obj.scale.set(...scale);
+			  obj.userData.snapType = snapType;
+			  window.meta4snap.objmonit = obj;
+			  window.meta4snap.scene.add(obj);
+			},
+			undefined,
+			(err) => console.error(`Error cargando ${path + filename}:`, err)
 		);
 	}
 	return true;
 }
+
+function loadGltf(param) {
+	let res = true;
+	let filename = param.filename;
+	let name = param.name;
+	let snapType = param.type;
+	let position = [0,0,0];
+	let scale = [10, 10, 10];	
+    
+	res = checkUniqueNameFirstLevel (window.meta4snap.scene, name);
+	if (res) {
+		let loader = new GLTFLoader();
+		let path = '';
+		if (!filename.startsWith('http://') && !filename.startsWith('https://') && !filename.startsWith('file://')) {
+			path = 	'./libs/objs/';
+		}
+		loader.load(
+			path + filename,
+			(gltf) => {
+			 let obj = gltf.scene;          // si es GLB/GLTF
+			  // const root = object3D;         // si vino de ObjectLoader JSON
+
+			  // Si sospechas de unidades en milímetros:
+			  // root.scale.setScalar(0.001);   // mm -> m
+
+			  inspectObject(obj);
+			  window.meta4snap.scene.add(obj);
+			  fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
+		});
+	}
+	return true;
+}
+
+
+function fitCameraToObject(camera, controls, object, offset = 2) {
+  const box = new THREE.Box3().setFromObject(object);
+  if (box.isEmpty()) return;
+
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+
+  // Mueve el modelo al origen (más cómodo)
+  object.position.sub(center);
+
+  // Distancia para encuadrar el objeto completo
+  const maxSize = Math.max(size.x, size.y, size.z);
+  const fov = THREE.MathUtils.degToRad(camera.fov);
+  let distance = (maxSize / 2) / Math.tan(fov / 2);
+  distance *= offset;
+
+  // Coloca la cámara mirando al origen
+  camera.position.set(0, 0, distance);
+  camera.near = Math.max(distance / 100, 0.01);
+  camera.far  = distance * 100;
+  camera.updateProjectionMatrix();
+
+  if (controls) {
+    controls.target.set(0, 0, 0);
+    controls.update();
+  }
+}
+
+function inspectObject(root) {
+  let meshCount = 0, vertCount = 0;
+  root.traverse(o => {
+    if (o.isMesh) {
+      meshCount++;
+      const pos = o.geometry?.attributes?.position;
+      if (pos) vertCount += pos.count;
+      // Opcional: fuerza doble cara por si las normales están invertidas
+      if (o.material) o.material.side = THREE.DoubleSide;
+      // Por si acaso alguien exportó con opacidad 0
+      if (o.material?.opacity === 0) { o.material.opacity = 1; o.material.transparent = false; }
+      o.visible = true;
+    }
+  });
+  console.log(`Meshes: ${meshCount}, approx vertices: ${vertCount}`);
+}
+
 
 function loadStl(param) {
 	let res = true;
