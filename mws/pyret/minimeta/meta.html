@@ -1367,7 +1367,13 @@ function getTrajectory(param) {
 function setScale(param) {
 	let res = true;
 	let obj = getObjectByNameOrId(param.name);
-	if (obj) setElementScale(obj, param.factor, param.factor, param.factor);
+	if (obj) {
+		if (obj.type == 'stl' || obj.type == 'gltf') {
+			obj.scale.set(param.factor, param.factor, param.factor);
+		} else {
+			setElementScale(obj, param.factor, param.factor, param.factor);		
+		}
+	}
 	return res;
 }
 
