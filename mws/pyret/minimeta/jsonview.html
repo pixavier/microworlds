@@ -54,34 +54,7 @@
   <script>
     // ---------- Demo ----------
     let data = [];
-	
-    let data0 = [
-      {
-        id: 1,
-        name: "Alice",
-        notes: "First line\r\nSecond line (CRLF)\nThird line (LF)",
-        orders: [
-          { orderId: "A-100", total: 42.5, items: [
-            { sku: "X1", qty: 2, price: 10 },
-            { sku: "Y3", qty: 1, price: 22.5 }
-          ]},
-          { orderId: "A-101", total: 15, items: [
-            { sku: "Z9", qty: 3, price: 5 }
-          ]}
-        ]
-      },
-      {
-        id: 2,
-        name: "Bob",
-        notes: "row1\\r\\nrow2 (escaped in source)\\nrow3",
-        orders: [
-          { orderId: "B-200", total: 8, items: [
-            { sku: "X1", qty: 1, price: 8 }
-          ]}
-        ]
-      }
-    ];
-  
+	  
     // ---------- Helpers ----------
 	
 	function pmessage(data) {
@@ -294,7 +267,6 @@
 			if (window.opener) {
 				let evt = 'jsonclick';
 				let datum = JSON.stringify({attr: info.colKey, val: info.value, path: info.path});
-				console.log(window.opener);
 				window.opener.ide.broadcast(evt, null, datum);
 			}
 
@@ -303,6 +275,61 @@
 		  }
 		});
 	}
+
+
+    let data_json5 = [
+      {
+        id: 1,
+        name: "Alice",
+        notes: "First line\r\nSecond line (CRLF)\nThird line (LF)",
+        orders: [
+          { orderId: "A-100", total: 42.5, items: [
+            { sku: "X1", qty: 2, price: 10 },
+            { sku: "Y3", qty: 1, price: 22.5 }
+          ]},
+          { orderId: "A-101", total: 15, items: [
+            { sku: "Z9", qty: 3, price: 5 }
+          ]}
+        ]
+      },
+      {
+        id: 2,
+        name: "Bob",
+        notes: "row1\\r\\nrow2 (escaped in source)\\nrow3",
+        orders: [
+          { orderId: "B-200", total: 8, items: [
+            { sku: "X1", qty: 1, price: 8 }
+          ]}
+        ]
+      }
+    ];
+
+    let data_json = [
+      {
+        "id": 1,
+        "name": "Alice",
+        "notes": "First line\r\nSecond line (CRLF)\nThird line (LF)",
+        "orders": [
+          { "orderId": "A-100", "total": 42.5, "items": [
+            { "sku": "X1", "qty": 2, "price": 10 },
+            { "sku": "Y3", "qty": 1, "price": 22.5 }
+          ]},
+          { "orderId": "A-101", "total": 15, "items": [
+            { "sku": "Z9", "qty": 3, "price": 5 }
+          ]}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Bob",
+        "notes": "row1\\r\\nrow2 (escaped in source)\\nrow3",
+        "orders": [
+          { "orderId": "B-200", "total": 8, "items": [
+            { "sku": "X1", "qty": 1, "price": 8 }
+          ]}
+        ]
+      }
+    ];
 
 
   </script>
