@@ -294,6 +294,7 @@
 			if (window.opener) {
 				let evt = 'jsonclick';
 				let datum = JSON.stringify({attr: info.colKey, val: info.value, path: info.path});
+				console.log(datum);
 				window.opener.ide.broadcast(evt, null, datum);
 			}
 
