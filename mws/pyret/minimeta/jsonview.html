@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>JSON → (Nested) Table with Click Events</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    .table-wrap { overflow: auto; max-width: 100%; }
+
+    .json-table {
+      border-collapse: collapse;
+      table-layout: auto;           /* auto size columns by content */
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 12px;
+    }
+    .json-table.fit-fill { width: 100%; }
+    .json-table.fit-content { width: auto; }
+    @supports (width: max-content) {
+      .json-table.fit-content { width: max-content; min-width: 10%; }
+    }
+
+    .json-table thead th {
+      background: #f6f7f8;
+      font-weight: 600;
+      text-align: left;
+      border: 1px solid #e2e5e9;
+      padding: 8px;
+      white-space: nowrap;
+    }
+    .json-table td {
+      border: 1px solid #e2e5e9;
+      padding: 8px;
+      vertical-align: top;
+    }
+    /* Show CR/LF and wrap long tokens */
+    .json-table td.multiline { white-space: pre-line; overflow-wrap: anywhere; }
+
+    /* Nested tables: a bit smaller and inset */
+    .json-table.nested { font-size: 12px; background: #fafbfc; }
+    .json-table.nested thead th { background: #f0f2f4; }
+    .json-table td > .json-table { margin: 4px; }
+    .json-table small.muted { color: #6b7280; }
+
+    /* Click UX */
+    .json-table td.clickable { cursor: pointer; }
+    .json-table td.selected { outline: 2px solid #2563eb; outline-offset: -2px; }
+  </style>
+</head>
+<body>
+  <div class="table-wrap">
+    <div id="table-here"></div>
+  </div>
+  <script src="./libs/JSON5.js"></script>
+  <script>
+    // ---------- Demo ----------
+    let data = [];
+	
+    let data0 = [
+      {
+        id: 1,
+        name: "Alice",
+        notes: "First line\r\nSecond line (CRLF)\nThird line (LF)",
+        orders: [
+          { orderId: "A-100", total: 42.5, items: [
+            { sku: "X1", qty: 2, price: 10 },
+            { sku: "Y3", qty: 1, price: 22.5 }
+          ]},
+          { orderId: "A-101", total: 15, items: [
+            { sku: "Z9", qty: 3, price: 5 }
+          ]}
+        ]
+      },
+      {
+        id: 2,
+        name: "Bob",
+        notes: "row1\\r\\nrow2 (escaped in source)\\nrow3",
+        orders: [
+          { orderId: "B-200", total: 8, items: [
+            { sku: "X1", qty: 1, price: 8 }
+          ]}
+        ]
+      }
+    ];
+  
+    // ---------- Helpers ----------
+	
+	function pmessage(data) {
+		let res = '';
+		let json = JSON5.parse(data);
+		viewJson(json.param.json);
+		return res;
+	}
+	
+    const isPlainObject = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
+    const setEq = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
+    const isNestedTable = (val) => Array.isArray(val) && val.length > 0 && val.every(isPlainObject);
+    const getExpectedColumns = (arr, provided) => provided ?? Object.keys(arr[0] ?? {});
+    let __tableSeq = 0;
+
+    function createEmptyTable() {
+      const t = document.createElement('table');
+      t.className = 'json-table nested';
+      const tb = document.createElement('tbody');
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.innerHTML = '<small class="muted">(empty)</small>';
+      tr.appendChild(td);
+      tb.appendChild(tr);
+      t.appendChild(tb);
+      return t;
+    }
+
+    // ---------- Core (recursive) builder ----------
+    function buildTable(data, columns = null, level = 0, opts = {}, path = []) {
+      const {
+        normalizeEscapedNewlines = false,
+        fit = 'content',                  // 'content' | 'fill'
+        clickableCells = true,
+        highlightOnClick = false,
+      } = opts;
+
+      if (!Array.isArray(data)) throw new Error('Data must be an array of objects');
+      if (data.length === 0) return createEmptyTable();
+      if (!data.every(isPlainObject)) throw new Error('Each item must be a plain object');
+
+      const expectedCols = getExpectedColumns(data, columns);
+      const expectedSet = new Set(expectedCols);
+
+      if (columns) {
+        const firstSet = new Set(Object.keys(data[0]));
+        if (!setEq(firstSet, expectedSet)) {
+          throw new Error('Provided columns must match the set of attributes in the data');
+        }
+      }
+
+      data.forEach((row, idx) => {
+        const rowSet = new Set(Object.keys(row));
+        if (!setEq(rowSet, expectedSet)) {
+          const missing = [...expectedSet].filter(k => !rowSet.has(k));
+          const extra = [...rowSet].filter(k => !expectedSet.has(k));
+          const parts = [];
+          if (missing.length) parts.push(`missing: ${missing.join(', ')}`);
+          if (extra.length) parts.push(`extra: ${extra.join(', ')}`);
+          throw new Error(`Row ${idx} does not match expected attributes (${[...expectedSet].join(', ')}); ${parts.join(' | ')}`);
+        }
+      });
+
+      const table = document.createElement('table');
+      const tableId = `t${++__tableSeq}`;
+      table.dataset.tableId = tableId;
+      table.className = 'json-table' + (level > 0 ? ' nested' : '') + (fit === 'fill' ? ' fit-fill' : ' fit-content');
+
+      // THEAD
+      const thead = document.createElement('thead');
+      const trHead = document.createElement('tr');
+      expectedCols.forEach((key) => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+      table.appendChild(thead);
+
+      // TBODY
+      const tbody = document.createElement('tbody');
+      data.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+
+        expectedCols.forEach((colKey) => {
+          const td = document.createElement('td');
+          let val = row[colKey];
+
+          // Attach metadata for click handling
+          td.dataset.cell = "1";
+          td.dataset.tableId = tableId;
+          td.dataset.level = String(level);
+          td.dataset.rowIndex = String(rowIndex);
+          td.dataset.colKey = colKey;
+          td.dataset.path = JSON.stringify(path);  // path to THIS table
+          if (clickableCells) td.classList.add('clickable');
+
+          // Store rich info directly on the node (avoids heavy data-* attrs)
+          td.__cellInfo = {
+            tableId, level, path: [...path], rowIndex, colKey,
+            value: val, row, columns: [...expectedCols],
+            highlightOnClick
+          };
+
+          if (isNestedTable(val)) {
+            // Recurse into nested array of objects
+            const nested = buildTable(val, null, level + 1, opts, [...path, colKey]);
+            td.appendChild(nested);
+          } else if (Array.isArray(val)) {
+            const allPrimitive = val.every(v => v === null || (typeof v !== 'object'));
+            let s = allPrimitive ? val.join(', ') : JSON.stringify(val);
+            if (normalizeEscapedNewlines) s = s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+            td.textContent = s;
+            td.classList.add('multiline');
+            td.__cellInfo.value = s;
+          } else if (typeof val === 'string') {
+            if (normalizeEscapedNewlines) val = val.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+            td.textContent = val;
+            td.classList.add('multiline');
+            td.__cellInfo.value = val;
+          } else if (isPlainObject(val) && Object.keys(val).length > 0) {
+            let s = JSON.stringify(val);
+            if (normalizeEscapedNewlines) s = s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+            td.textContent = s;
+            td.classList.add('multiline');
+            td.__cellInfo.value = s;
+          } else if (val === null || val === undefined) {
+            td.textContent = '';
+            td.__cellInfo.value = null;
+          } else {
+            td.textContent = String(val);
+            td.__cellInfo.value = String(val);
+          }
+
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      return table;
+    }
+
+    // ---------- Public API with click delegation ----------
+    function renderJsonTable(mount, data, columns = null, options = {}) {
+      const el = typeof mount === 'string' ? document.querySelector(mount) : mount;
+      if (!el) throw new Error('Mount element not found');
+
+      // Default noop handler
+      const onCellClick = typeof options.onCellClick === 'function'
+        ? options.onCellClick
+        : (info) => { console.log('Cell clicked:', info); };
+
+      // Render
+      el.innerHTML = '';
+      el.appendChild(buildTable(data, columns, 0, options, []));
+
+      // Delegate click handling (attach once per mount element)
+      if (!el.__jsonTable_clickBound) {
+        el.addEventListener('click', (event) => {
+          const td = event.target.closest('td[data-cell="1"]');
+          if (!td || !el.contains(td)) return;
+
+          const info = td.__cellInfo || null;
+          const handler = el.__jsonTable_onCellClick;
+          if (info && info.highlightOnClick) {
+            // simple highlight toggle
+            td.classList.toggle('selected');
+			setTimeout(function(){td.classList.remove('selected');}, 750);
+          }
+          if (typeof handler === 'function') {
+            handler({ ...info, event });
+          }
+        });
+        el.__jsonTable_clickBound = true;
+      }
+      // Update handler reference for this render
+      el.__jsonTable_onCellClick = onCellClick;
+    }
+
+	function viewJson(data) {
+		// Example usage: log info + highlight on click
+		renderJsonTable('#table-here', data, null, {
+		  normalizeEscapedNewlines: true,
+		  fit: 'content',
+		  clickableCells: true,
+		  highlightOnClick: true,
+		  onCellClick: (info) => {
+			// info.value may be a string (rendered), not the original object for nested tables.
+			// For nested tables, clicks happen inside the inner table.
+	/*		
+			console.log('Clicked cell:', {
+			  tableId: info.tableId,
+			  level: info.level,
+			  path: info.path,       // path from root array to this table (via column keys)
+			  rowIndex: info.rowIndex,
+			  colKey: info.colKey,
+			  value: info.value,
+			  row: info.row,
+			  columns: info.columns
+			});
+	*/
+			console.log('Clicked cell:', {
+			  attr: info.colKey,
+			  val: info.value,
+			  path: info.path
+			});
+
+			if (window.opener) {
+				let evt = 'jsonclick';
+				let datum = JSON.stringify({attr: info.colKey, val: info.value, path: info.path});
+				window.opener.ide.broadcast(evt, null, datum);
+			}
+
+			// Example: show a toast/alert
+			// alert(`R${info.rowIndex} • ${info.colKey}: ${info.value}`);
+		  }
+		});
+	}
+
+
+  </script>
+</body>
+</html>
