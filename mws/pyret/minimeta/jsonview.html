@@ -24,12 +24,12 @@
       font-weight: 600;
       text-align: left;
       border: 1px solid #e2e5e9;
-      padding: 8px;
+      padding: 6px;
       white-space: nowrap;
     }
     .json-table td {
       border: 1px solid #e2e5e9;
-      padding: 8px;
+      padding: 6px;
       vertical-align: top;
     }
     /* Show CR/LF and wrap long tokens */
@@ -54,16 +54,25 @@
   <script>
     // ---------- Demo ----------
     let data = [];
-	  
+
     // ---------- Helpers ----------
+
+    function pmessage(data) {
+      let res = '';
+      let json = JSON5.parse(data);
+	  let op = json.op;
+	  let param = json.param;
 	
-	function pmessage(data) {
-		let res = '';
-		let json = JSON5.parse(data);
-		viewJson(json.param.json);
-		return res;
-	}
-	
+      if (op == 'jsonview') viewJson(json.param.json);
+      if (op == 'highlight') {
+		let path = json.param.path;	
+		let rowIndexPath = json.param.rowIndexPath;	
+		highlightCellByPath(path, rowIndexPath);	  
+	  }
+	  
+      return res;
+    }
+
     const isPlainObject = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
     const setEq = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
     const isNestedTable = (val) => Array.isArray(val) && val.length > 0 && val.every(isPlainObject);
@@ -84,7 +93,8 @@
     }
 
     // ---------- Core (recursive) builder ----------
-    function buildTable(data, columns = null, level = 0, opts = {}, path = []) {
+    // rowPath carries the nested row indices from root → current table
+    function buildTable(data, columns = null, level = 0, opts = {}, path = [], rowPath = []) {
       const {
         normalizeEscapedNewlines = false,
         fit = 'content',                  // 'content' | 'fill'
@@ -138,10 +148,14 @@
       const tbody = document.createElement('tbody');
       data.forEach((row, rowIndex) => {
         const tr = document.createElement('tr');
+        const currentRowPath = [...rowPath, rowIndex]; // accumulate indices
 
         expectedCols.forEach((colKey) => {
           const td = document.createElement('td');
           let val = row[colKey];
+
+          // Path including THIS cell's attr
+          const pathWithAttr = [...path, colKey];
 
           // Attach metadata for click handling
           td.dataset.cell = "1";
@@ -149,19 +163,34 @@
           td.dataset.level = String(level);
           td.dataset.rowIndex = String(rowIndex);
           td.dataset.colKey = colKey;
-          td.dataset.path = JSON.stringify(path);  // path to THIS table
+          td.dataset.path = JSON.stringify(pathWithAttr);             // include attr at end
+          td.dataset.rowIndexPath = JSON.stringify(currentRowPath);   // full row indices from root
           if (clickableCells) td.classList.add('clickable');
 
           // Store rich info directly on the node (avoids heavy data-* attrs)
           td.__cellInfo = {
-            tableId, level, path: [...path], rowIndex, colKey,
-            value: val, row, columns: [...expectedCols],
+            tableId,
+            level,
+            path: pathWithAttr,             // include attr
+            rowIndex,                       // index at this level
+            rowIndexPath: currentRowPath,   // full nested row path
+            colKey,
+            value: val,
+            row,
+            columns: [...expectedCols],
             highlightOnClick
           };
 
           if (isNestedTable(val)) {
-            // Recurse into nested array of objects
-            const nested = buildTable(val, null, level + 1, opts, [...path, colKey]);
+            // Recurse into nested array of objects (table path extends by the key)
+            const nested = buildTable(
+              val,
+              null,
+              level + 1,
+              opts,
+              [...path, colKey],
+              currentRowPath
+            );
             td.appendChild(nested);
           } else if (Array.isArray(val)) {
             const allPrimitive = val.every(v => v === null || (typeof v !== 'object'));
@@ -211,7 +240,7 @@
 
       // Render
       el.innerHTML = '';
-      el.appendChild(buildTable(data, columns, 0, options, []));
+      el.appendChild(buildTable(data, columns, 0, options, [], [])); // start with empty rowPath
 
       // Delegate click handling (attach once per mount element)
       if (!el.__jsonTable_clickBound) {
@@ -222,9 +251,8 @@
           const info = td.__cellInfo || null;
           const handler = el.__jsonTable_onCellClick;
           if (info && info.highlightOnClick) {
-            // simple highlight toggle
             td.classList.toggle('selected');
-			setTimeout(function(){td.classList.remove('selected');}, 750);
+            setTimeout(function(){td.classList.remove('selected');}, 750);
           }
           if (typeof handler === 'function') {
             handler({ ...info, event });
@@ -236,48 +264,95 @@
       el.__jsonTable_onCellClick = onCellClick;
     }
 
-	function viewJson(data) {
-		// Example usage: log info + highlight on click
-		renderJsonTable('#table-here', data, null, {
-		  normalizeEscapedNewlines: true,
-		  fit: 'content',
-		  clickableCells: true,
-		  highlightOnClick: true,
-		  onCellClick: (info) => {
-			// info.value may be a string (rendered), not the original object for nested tables.
-			// For nested tables, clicks happen inside the inner table.
-	/*		
-			console.log('Clicked cell:', {
-			  tableId: info.tableId,
-			  level: info.level,
-			  path: info.path,       // path from root array to this table (via column keys)
-			  rowIndex: info.rowIndex,
-			  colKey: info.colKey,
-			  value: info.value,
-			  row: info.row,
-			  columns: info.columns
-			});
-	*/
-			console.log('Clicked cell:', {
-			  attr: info.colKey,
-			  val: info.value,
-			  path: info.path
-			});
+    function viewJson(data) {
+      renderJsonTable('#table-here', data, null, {
+        normalizeEscapedNewlines: true,
+        fit: 'content',
+        clickableCells: true,
+        highlightOnClick: true,
+        onCellClick: (info) => {
+          // info.path already includes the clicked attr as last element
+          console.log('Clicked cell:', {
+            attr: info.colKey,
+            val: info.value,
+            path: info.path,                 // e.g., ["orders","items"]
+            rowIndex: info.rowIndex,         // index at this table level
+            rowIndexPath: info.rowIndexPath  // e.g., [0,1,2] from root
+          });
 
-			if (window.opener) {
-				let evt = 'jsonclick';
-				let datum = JSON.stringify({attr: info.colKey, val: info.value, path: info.path});
-				window.opener.ide.broadcast(evt, null, datum);
-			}
+          if (window.opener) {
+            let evt = 'jsonclick';
+            let datum = JSON.stringify({
+              attr: info.colKey,
+              val: info.value,
+              path: info.path,
+              rowIndexPath: info.rowIndexPath
+            });
+            window.opener.ide.broadcast(evt, null, datum);
+          }
+        }
+      });
+    }
 
-			// Example: show a toast/alert
-			// alert(`R${info.rowIndex} • ${info.colKey}: ${info.value}`);
-		  }
-		});
+	
+	// Highlight a cell border by path + rowIndexPath
+	// - path: array of keys ending with the attr (e.g. ["orders","items","price"])
+	// - rowIndexPath: array of row indices from root (e.g. [0,0,1])
+	function highlightCellByPath(path, rowIndexPath, options = {}) {
+	  const {
+		mount = '#table-here',   // container where the table is rendered
+		className = 'selected',  // CSS class to apply
+		duration = 0,         // ms to keep the highlight; 0 = keep it on
+		scroll = true,           // auto-scroll into view
+		toggle = true,           // NEW: if already selected, remove it (toggle)
+		solo = false             // NEW: when selecting, clear the class from other cells first
+	  } = options;
+
+	  const el = typeof mount === 'string' ? document.querySelector(mount) : mount;
+	  if (!el) throw new Error('Mount element not found');
+
+	  const sPath = Array.isArray(path) ? JSON.stringify(path) : String(path);
+	  const sIdx  = Array.isArray(rowIndexPath) ? JSON.stringify(rowIndexPath) : String(rowIndexPath);
+
+	  const td = Array.from(el.querySelectorAll('td[data-cell="1"]'))
+		.find(cell => cell.dataset.path === sPath && cell.dataset.rowIndexPath === sIdx);
+
+	  if (!td) return false;
+
+	  const isSelected = td.classList.contains(className);
+
+	  // TOGGLE: if already selected, remove and stop here
+	  if (toggle && isSelected) {
+		td.classList.remove(className);
+		return true;
+	  }
+
+	  // SOLO: clear other selections first
+	  if (solo) {
+		el.querySelectorAll(`td.${className}`).forEach(c => c.classList.remove(className));
+	  }
+
+	  if (scroll && td.scrollIntoView) {
+		td.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+	  }
+
+	  td.classList.add(className);
+
+	  if (duration > 0) {
+		setTimeout(() => {
+		  // only remove if still selected
+		  if (td.classList.contains(className)) td.classList.remove(className);
+		}, duration);
+	  }
+
+	  return true;
 	}
 
 
-    let data_json5 = [
+	
+    // -------- Demo data ----------
+    let data_json5 = 
+	[
       {
         id: 1,
         name: "Alice",
@@ -302,9 +377,12 @@
           ]}
         ]
       }
-    ];
+    ]
+	;
 
-    let data_json = [
+
+    let data_json =
+    [
       {
         "id": 1,
         "name": "Alice",
@@ -329,9 +407,11 @@
           ]}
         ]
       }
-    ];
+    ]
+	;
 
-
+    // Uncomment to render demo immediately:
+    // viewJson(data_json);
   </script>
 </body>
 </html>
