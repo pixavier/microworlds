@@ -1251,7 +1251,7 @@ function introspect(param) {
 			let children = [];
 			for (let child of obj.children) {
 				let objChild;
-				if ((	child.type == 'Mesh' || child.type == 'Line' ||	child.type == 'Object3D') && 
+				if ((	child.type == 'Mesh' || child.type == 'Group' || child.type == 'Line' ||	child.type == 'Object3D') && 
 						child.name != 'Ground' &&
 						child.name != 'BoundingBoxHelper' &&
 						!child.name.endsWith('_axes')) {
