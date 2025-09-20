@@ -1145,11 +1145,41 @@ function setElementColor(obj, color) {
   }
 }
 
-function setElementOpacity(obj, value) {
-  if (obj) {
-    if (obj.material) obj.material.opacity = value;
-    for (let child of obj.children) setElementOpacity(child, value);
-  }
+function setElementOpacity(root, value, opts = {}) {
+  const {
+    forceTransparent = true,   // force .transparent when value < 1
+    autoDepthWrite = true,     // turn off depthWrite for very transparent stuff
+    minOpaque = 0.999,         // treat >= this as opaque for depth
+    alsoDoubleSide = false,    // optionally set DoubleSide on transparent mats
+  } = opts;
+
+  root.traverse(o => {
+    // Mesh, Line, and Points materials can all be faded
+    const mats = (o.material && Array.isArray(o.material)) ? o.material : (o.material ? [o.material] : []);
+    for (const m of mats) {
+      if (!m) continue;
+
+      // Only change materials that actually support opacity (most do)
+      if ('opacity' in m) {
+        m.opacity = value;
+
+        // Decide transparency & depth writing
+        const shouldBeTransparent = forceTransparent && (value < 1);
+        if (m.transparent !== shouldBeTransparent) {
+          m.transparent = shouldBeTransparent;
+          m.needsUpdate = true; // required when toggling .transparent
+        }
+
+        if (autoDepthWrite) {
+          m.depthWrite = value >= minOpaque; // disable at low opacity to reduce artifacts
+        }
+
+        if (alsoDoubleSide && shouldBeTransparent && 'side' in m) {
+          m.side = THREE.DoubleSide;
+        }
+      }
+    }
+  });
 }
 
 function setElementScale(obj, xf, yf, zf) {
