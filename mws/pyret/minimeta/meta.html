@@ -891,6 +891,7 @@ function loadGltf(param) {
 			  let obj = gltf.scene;          // si es GLB/GLTF
 			  obj.name = name;
 			  inspectObject(obj);
+  			  obj.userData.snapType = snapType;
 			  window.meta4snap.scene.add(obj);
 			  fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
 		});
