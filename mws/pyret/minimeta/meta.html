@@ -632,8 +632,9 @@ function loadGltf(param) {
         obj.name = name;
         inspectObject(obj);
         obj.userData.snapType = snapType;
+//		obj.scale.setScalar(100);  
         window.meta4snap.scene.add(obj);
-        fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
+//        fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
       }
     );
   }
@@ -1046,7 +1047,8 @@ function setScale(param) {
   let obj = getObjectByNameOrId(param.name);
   if (obj) {
     if (obj.type == 'stl' || obj.type == 'gltf') {
-      obj.scale.set(param.factor, param.factor, param.factor);
+//      obj.scale.set(param.factor, param.factor, param.factor);
+      obj.scale.setScalar(param.factor);  
     } else {
       setElementScale(obj, param.factor, param.factor, param.factor);
     }
