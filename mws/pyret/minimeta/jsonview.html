@@ -19,6 +19,8 @@
       .json-table.fit-content { width: max-content; min-width: 10%; }
     }
 
+    .json-table.title { font-size: 16px; background: #fafbfc; }
+
     .json-table thead th {
       background: #f6f7f8;
       font-weight: 600;
@@ -47,29 +49,22 @@
   </style>
 </head>
 <body>
-  <div class="table-wrap">
-    <div id="table-here"></div>
-  </div>
+
   <script src="./libs/JSON5.js"></script>
   <script>
     // ---------- Demo ----------
     let data = [];
 
     // ---------- Helpers ----------
-
     function pmessage(data) {
       let res = '';
       let json = JSON5.parse(data);
-	  let op = json.op;
-	  let param = json.param;
-	
-      if (op == 'jsonview') viewJson(json.param.json);
-      if (op == 'highlight') {
-		let path = json.param.path;	
-		let rowIndexPath = json.param.rowIndexPath;	
-		highlightCellByPath(path, rowIndexPath);	  
-	  }
-	  
+      let op = json.op;
+      let param = json.param;
+
+      if (op === 'jsonview') addJsonTable(param.json, param.name, param.title);
+      if (op === 'highlight') highlightCellByPath(param.path, param.rowIndexPath, param.name);
+
       return res;
     }
 
@@ -229,9 +224,13 @@
     }
 
     // ---------- Public API with click delegation ----------
-    function renderJsonTable(mount, data, columns = null, options = {}) {
-      const el = typeof mount === 'string' ? document.querySelector(mount) : mount;
-      if (!el) throw new Error('Mount element not found');
+    function renderJsonTable(name, title, data, columns = null, options = {}) {
+      let el = typeof name === 'string' ? document.querySelector(name) : mount;
+      if (!el) {
+		el = document.createElement('div');
+		el.id = name;
+		document.body.appendChild(el);
+	  }
 
       // Default noop handler
       const onCellClick = typeof options.onCellClick === 'function'
@@ -239,7 +238,7 @@
         : (info) => { console.log('Cell clicked:', info); };
 
       // Render
-      el.innerHTML = '';
+      el.innerHTML = `<br><span class="json-table title">${title}</span><span class="json-table" style="color:white"> (id=${name})</span>`;
       el.appendChild(buildTable(data, columns, 0, options, [], [])); // start with empty rowPath
 
       // Delegate click handling (attach once per mount element)
@@ -264,8 +263,13 @@
       el.__jsonTable_onCellClick = onCellClick;
     }
 
-    function viewJson(data) {
-      renderJsonTable('#table-here', data, null, {
+    function addJsonTable(data, name, title) {
+	
+	  if (document.getElementById(name)) {
+		 return false;
+	  }
+	
+      renderJsonTable(name, title, data, null, {
         normalizeEscapedNewlines: true,
         fit: 'content',
         clickableCells: true,
@@ -288,71 +292,69 @@
               path: info.path,
               rowIndexPath: info.rowIndexPath
             });
-            window.opener.ide.broadcast(evt, null, datum);
+            window.opener.ide && window.opener.ide.broadcast && window.opener.ide.broadcast(evt, null, datum);
           }
         }
       });
+	  
+	  return true;
     }
 
-	
-	// Highlight a cell border by path + rowIndexPath
-	// - path: array of keys ending with the attr (e.g. ["orders","items","price"])
-	// - rowIndexPath: array of row indices from root (e.g. [0,0,1])
-	function highlightCellByPath(path, rowIndexPath, options = {}) {
-	  const {
-		mount = '#table-here',   // container where the table is rendered
-		className = 'selected',  // CSS class to apply
-		duration = 0,         // ms to keep the highlight; 0 = keep it on
-		scroll = true,           // auto-scroll into view
-		toggle = true,           // NEW: if already selected, remove it (toggle)
-		solo = false             // NEW: when selecting, clear the class from other cells first
-	  } = options;
+    // Highlight a cell border by path + rowIndexPath
+    // - path: array of keys ending with the attr (e.g. ["orders","items","price"])
+    // - rowIndexPath: array of row indices from root (e.g. [0,0,1])
+    function highlightCellByPath(path, rowIndexPath, name, options = {}) {
+      const {
+        className = 'selected',  // CSS class to apply
+        duration = 0,            // ms to keep the highlight; 0 = keep it on
+        scroll = true,           // auto-scroll into view
+        toggle = true,           // if already selected, remove it (toggle)
+        solo = false             // when selecting, clear the class from other cells first
+      } = options;
 
-	  const el = typeof mount === 'string' ? document.querySelector(mount) : mount;
-	  if (!el) throw new Error('Mount element not found');
+      const elSel = '#' + name;
+      const el = typeof elSel === 'string' ? document.querySelector(elSel) : elSel;
+      if (!el) throw new Error('Mount element not found');
 
-	  const sPath = Array.isArray(path) ? JSON.stringify(path) : String(path);
-	  const sIdx  = Array.isArray(rowIndexPath) ? JSON.stringify(rowIndexPath) : String(rowIndexPath);
+      const sPath = Array.isArray(path) ? JSON.stringify(path) : String(path);
+      const sIdx  = Array.isArray(rowIndexPath) ? JSON.stringify(rowIndexPath) : String(rowIndexPath);
 
-	  const td = Array.from(el.querySelectorAll('td[data-cell="1"]'))
-		.find(cell => cell.dataset.path === sPath && cell.dataset.rowIndexPath === sIdx);
+      const td = Array.from(el.querySelectorAll('td[data-cell="1"]'))
+        .find(cell => cell.dataset.path === sPath && cell.dataset.rowIndexPath === sIdx);
 
-	  if (!td) return false;
+      if (!td) return false;
 
-	  const isSelected = td.classList.contains(className);
+      const isSelected = td.classList.contains(className);
 
-	  // TOGGLE: if already selected, remove and stop here
-	  if (toggle && isSelected) {
-		td.classList.remove(className);
-		return true;
-	  }
+      // TOGGLE: if already selected, remove and stop here
+      if (toggle && isSelected) {
+        td.classList.remove(className);
+        return true;
+      }
 
-	  // SOLO: clear other selections first
-	  if (solo) {
-		el.querySelectorAll(`td.${className}`).forEach(c => c.classList.remove(className));
-	  }
+      // SOLO: clear other selections first
+      if (solo) {
+        el.querySelectorAll(`td.${className}`).forEach(c => c.classList.remove(className));
+      }
 
-	  if (scroll && td.scrollIntoView) {
-		td.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-	  }
+      if (scroll && td.scrollIntoView) {
+        td.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      }
 
-	  td.classList.add(className);
+      td.classList.add(className);
 
-	  if (duration > 0) {
-		setTimeout(() => {
-		  // only remove if still selected
-		  if (td.classList.contains(className)) td.classList.remove(className);
-		}, duration);
-	  }
+      if (duration > 0) {
+        setTimeout(() => {
+          if (td.classList.contains(className)) td.classList.remove(className);
+        }, duration);
+      }
 
-	  return true;
-	}
+      return true;
+    }
 
-
-	
     // -------- Demo data ----------
-    let data_json5 = 
-	[
+    let data_json5 =
+    [
       {
         id: 1,
         name: "Alice",
@@ -377,9 +379,7 @@
           ]}
         ]
       }
-    ]
-	;
-
+    ];
 
     let data_json =
     [
@@ -407,11 +407,8 @@
           ]}
         ]
       }
-    ]
-	;
+    ];
 
-    // Uncomment to render demo immediately:
-    // viewJson(data_json);
   </script>
 </body>
 </html>
