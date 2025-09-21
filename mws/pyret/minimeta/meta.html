@@ -127,7 +127,7 @@ function announcePick(leafObj) {
   // Populate UI + broadcast to Snap
   document.getElementById("evt").value = "click3d";
   document.getElementById("datum").value = JSON5.stringify(info);
-  if (window.btn01) window.btn01();
+  window.btn01();
   window.meta4snap.lastPicked = info;
   console.log("Picked:", info);
 }
