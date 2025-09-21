@@ -124,10 +124,15 @@ function announcePick(leafObj) {
     rootName: root.name || "",
     rootId: "oid" + root.id
   };
-  // Populate UI + broadcast to Snap
-  document.getElementById("evt").value = "click3d";
-  document.getElementById("datum").value = JSON5.stringify(info);
-  window.btn01();
+  
+  let evt = "click3d";
+  let datum = JSON5.stringify(info);
+  if (window.opener) {
+    window.opener.ide.broadcast(evt, null, datum);
+  } else if (window.parent) {
+    window.parent.ide.broadcast(evt, null, datum);
+  }
+ 
   window.meta4snap.lastPicked = info;
   console.log("Picked:", info);
 }
