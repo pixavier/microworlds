@@ -51,6 +51,7 @@
 <body>
   <span class="json-table">Basic Data Viewer</span>
   <script src="./libs/JSON5.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <script>
     // ---------- Demo ----------
     let data = [];
@@ -64,6 +65,7 @@
 
       if (op === 'jsonview') addJsonTable(param.json, param.name, param.title);
       if (op === 'highlight') highlightCellByPath(param.path, param.rowIndexPath, param.name);
+      if (op === 'chartview') addChart(param.json, param.name, param.title);
 
       return res;
     }
@@ -225,12 +227,10 @@
 
     // ---------- Public API with click delegation ----------
     function renderJsonTable(name, title, data, columns = null, options = {}) {
-      let el = typeof name === 'string' ? document.querySelector(name) : mount;
-      if (!el) {
-		el = document.createElement('div');
-		el.id = name;
-		document.body.appendChild(el);
-	  }
+
+	  let el = document.createElement('div');
+	  el.id = name;
+	  document.body.appendChild(el);
 
       // Default noop handler
       const onCellClick = typeof options.onCellClick === 'function'
@@ -351,6 +351,47 @@
 
       return true;
     }
+
+
+    function addChart(data, name, title) {
+	
+	  if (document.getElementById(name)) {
+		 return false;
+	  }
+	  
+	  document.body.appendChild(document.createElement('br'));
+
+  	  let el = document.createElement('div');
+	  el.id = name;
+	  document.body.appendChild(el);
+/*
+	  [
+			{
+			  name:"labels",
+			  data: [1,2,3,4,5,6]
+			},  
+			{
+			  name:"Serie A",
+			  data: [1,2,3,4,5,6]
+			}  
+	  ]
+*/
+	  let labels = data.find(item => item.name === "labels")?.data;
+	  let series = data.filter(item => item.name !== "labels");
+
+	  console.log(series);
+
+	  const options = {
+		  chart: { type: 'line', width: 500, height: 300, toolbar: { show: true } },
+		  series: series,
+		  xaxis: { categories: labels },
+		  title: { text: title, style: {fontSize: '12px', fontWeight: '600'} }
+	  };
+
+	  new ApexCharts(document.querySelector('#' + name), options).render();
+	  return true;
+    }
+
 
     // -------- Demo data ----------
     let data_json5 =
