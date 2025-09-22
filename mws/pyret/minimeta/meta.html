@@ -674,7 +674,7 @@ async function loadGltf(param) {
     obj.name = name;
     inspectObject(obj);
     obj.userData.snapType = snapType;
-    // obj.scale.setScalar(100);
+    // obj.scale.setScalar(10);
     window.meta4snap.scene.add(obj);
     // fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
 
@@ -1098,6 +1098,7 @@ function setScale(param) {
       setElementScale(obj, param.factor, param.factor, param.factor);
     }
   }
+  console.log('Scaled to ' + param);
   return true;
 }
 
