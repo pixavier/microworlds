@@ -617,7 +617,7 @@ function inspectObject(root) {
   console.log(`Meshes: ${meshCount}, approx vertices: ${vertCount}`);
 }
 
-function loadGltf(param) {
+function loadGltfAsync(param) {
   let res = true;
   let filename = param.filename;
   let name = param.name;
@@ -644,6 +644,46 @@ function loadGltf(param) {
     );
   }
   return true;
+}
+
+
+async function loadGltf(param) {
+  const { filename, name, type: snapType } = param;
+
+  // check name uniqueness
+  if (!checkUniqueNameFirstLevel(window.meta4snap.scene, name)) {
+    console.warn(`Object name '${name}' is not unique in scene`);
+    return null;
+  }
+
+  let loader = new GLTFLoader();
+  let path = '';
+  if (
+    !filename.startsWith('http://') &&
+    !filename.startsWith('https://') &&
+    !filename.startsWith('file://')
+  ) {
+    path = './libs/objs/';
+  }
+
+  try {
+    // This line will wait until loading is finished
+    const gltf = await loader.loadAsync(path + filename);
+
+    let obj = gltf.scene;
+    obj.name = name;
+    inspectObject(obj);
+    obj.userData.snapType = snapType;
+    // obj.scale.setScalar(100);
+    window.meta4snap.scene.add(obj);
+    // fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
+
+    console.log(`GLTF '${filename}' loaded successfully`);
+    return obj; // return the object so caller knows it's ready
+  } catch (err) {
+    console.error(`Failed to load GLTF '${filename}':`, err);
+    return null;
+  }
 }
 
 function loadStl(param) {
