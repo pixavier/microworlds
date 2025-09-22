@@ -679,10 +679,10 @@ async function loadGltf(param) {
     // fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
 
     console.log(`GLTF '${filename}' loaded successfully`);
-    return obj; // return the object so caller knows it's ready
+    return true;
   } catch (err) {
     console.error(`Failed to load GLTF '${filename}':`, err);
-    return null;
+    return false;
   }
 }
 
