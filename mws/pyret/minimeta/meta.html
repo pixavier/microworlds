@@ -119,10 +119,8 @@ function pickAtClientXY(clientX, clientY) {
 function announcePick(leafObj) {
   const root = getTopLevel(leafObj);
   const info = {
-    name: leafObj.name || "",
-    id: "oid" + leafObj.id,
-    rootName: root.name || "",
-    rootId: "oid" + root.id
+    name: root.name || "",
+    id: "oid" + root.id
   };
   
   let evt = "click3d";

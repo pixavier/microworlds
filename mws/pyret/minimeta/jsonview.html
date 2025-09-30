@@ -9,7 +9,7 @@
 
     .json-table {
       border-collapse: collapse;
-      table-layout: auto;           /* auto size columns by content */
+      table-layout: auto;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       font-size: 12px;
     }
@@ -34,16 +34,13 @@
       padding: 6px;
       vertical-align: top;
     }
-    /* Show CR/LF and wrap long tokens */
     .json-table td.multiline { white-space: pre-line; overflow-wrap: anywhere; }
 
-    /* Nested tables: a bit smaller and inset */
     .json-table.nested { font-size: 12px; background: #fafbfc; }
     .json-table.nested thead th { background: #f0f2f4; }
     .json-table td > .json-table { margin: 4px; }
     .json-table small.muted { color: #6b7280; }
 
-    /* Click UX */
     .json-table td.clickable { cursor: pointer; }
     .json-table td.selected { outline: 2px solid #2563eb; outline-offset: -2px; }
   </style>
@@ -51,13 +48,14 @@
 <body>
   <span class="json-table">Basic Data Viewer</span>
   <script src="./libs/JSON5.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="./libraries/apexcharts.js"></script>
   <script>
     // ---------- Demo ----------
+	window.meta4snap = {};
     let data = [];
 
     // ---------- Helpers ----------
-    function pmessage(data) {
+    function pmessage(data, callback) {
       let res = '';
       let json = JSON5.parse(data);
       let op = json.op;
@@ -66,6 +64,7 @@
       if (op === 'jsonview') addJsonTable(param.json, param.name, param.title);
       if (op === 'highlight') highlightCellByPath(param.path, param.rowIndexPath, param.name);
       if (op === 'chartview') addChart(param.json, param.name, param.title);
+      if (op === 'imgview') addImg(param.base64, param.name, param.title, param.width, callback);
 
       return res;
     }
@@ -89,12 +88,11 @@
       return t;
     }
 
-    // ---------- Core (recursive) builder ----------
-    // rowPath carries the nested row indices from root → current table
+    // ---------- Core builder ----------
     function buildTable(data, columns = null, level = 0, opts = {}, path = [], rowPath = []) {
       const {
         normalizeEscapedNewlines = false,
-        fit = 'content',                  // 'content' | 'fill'
+        fit = 'content',
         clickableCells = true,
         highlightOnClick = false,
       } = opts;
@@ -145,32 +143,28 @@
       const tbody = document.createElement('tbody');
       data.forEach((row, rowIndex) => {
         const tr = document.createElement('tr');
-        const currentRowPath = [...rowPath, rowIndex]; // accumulate indices
+        const currentRowPath = [...rowPath, rowIndex];
 
         expectedCols.forEach((colKey) => {
           const td = document.createElement('td');
           let val = row[colKey];
-
-          // Path including THIS cell's attr
           const pathWithAttr = [...path, colKey];
 
-          // Attach metadata for click handling
           td.dataset.cell = "1";
           td.dataset.tableId = tableId;
           td.dataset.level = String(level);
           td.dataset.rowIndex = String(rowIndex);
           td.dataset.colKey = colKey;
-          td.dataset.path = JSON.stringify(pathWithAttr);             // include attr at end
-          td.dataset.rowIndexPath = JSON.stringify(currentRowPath);   // full row indices from root
+          td.dataset.path = JSON.stringify(pathWithAttr);
+          td.dataset.rowIndexPath = JSON.stringify(currentRowPath);
           if (clickableCells) td.classList.add('clickable');
 
-          // Store rich info directly on the node (avoids heavy data-* attrs)
           td.__cellInfo = {
             tableId,
             level,
-            path: pathWithAttr,             // include attr
-            rowIndex,                       // index at this level
-            rowIndexPath: currentRowPath,   // full nested row path
+            path: pathWithAttr,
+            rowIndex,
+            rowIndexPath: currentRowPath,
             colKey,
             value: val,
             row,
@@ -179,15 +173,7 @@
           };
 
           if (isNestedTable(val)) {
-            // Recurse into nested array of objects (table path extends by the key)
-            const nested = buildTable(
-              val,
-              null,
-              level + 1,
-              opts,
-              [...path, colKey],
-              currentRowPath
-            );
+            const nested = buildTable(val, null, level + 1, opts, [...path, colKey], currentRowPath);
             td.appendChild(nested);
           } else if (Array.isArray(val)) {
             const allPrimitive = val.every(v => v === null || (typeof v !== 'object'));
@@ -196,11 +182,24 @@
             td.textContent = s;
             td.classList.add('multiline');
             td.__cellInfo.value = s;
-          } else if (typeof val === 'string') {
-            if (normalizeEscapedNewlines) val = val.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
-            td.textContent = val;
-            td.classList.add('multiline');
-            td.__cellInfo.value = val;
+		  } else if (typeof val === 'string') {
+			if (val.startsWith("data:image/")) {
+				// Base64 image string
+				const img = document.createElement("img");
+				img.src = val;
+				img.alt = colKey;
+				img.style.maxWidth = "120px";
+				img.style.maxHeight = "120px";
+				img.style.border = "1px solid #ddd";
+				img.style.borderRadius = "6px";
+				td.appendChild(img);
+				td.__cellInfo.value = "[image]";
+			  } else {
+				if (normalizeEscapedNewlines) val = val.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+				td.textContent = val;
+				td.classList.add('multiline');
+				td.__cellInfo.value = val;
+			}
           } else if (isPlainObject(val) && Object.keys(val).length > 0) {
             let s = JSON.stringify(val);
             if (normalizeEscapedNewlines) s = s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
@@ -220,33 +219,32 @@
 
         tbody.appendChild(tr);
       });
-
+	
       table.appendChild(tbody);
       return table;
     }
 
-    // ---------- Public API with click delegation ----------
+    // ---------- Public API ----------
     function renderJsonTable(name, title, data, columns = null, options = {}) {
 
-	  let el = document.createElement('div');
-	  el.id = name;
-	  document.body.appendChild(el);
+      let el = document.getElementById(name);
+	  if (!el) {
+		el = document.createElement('div');
+        el.id = name;
+        document.body.appendChild(el);
+	  }
 
-      // Default noop handler
       const onCellClick = typeof options.onCellClick === 'function'
         ? options.onCellClick
         : (info) => { console.log('Cell clicked:', info); };
 
-      // Render
       el.innerHTML = `<br><span class="json-table title">${title}</span><span class="json-table" style="color:white"> (id=${name})</span>`;
-      el.appendChild(buildTable(data, columns, 0, options, [], [])); // start with empty rowPath
+      el.appendChild(buildTable(data, columns, 0, options, [], []));
 
-      // Delegate click handling (attach once per mount element)
       if (!el.__jsonTable_clickBound) {
         el.addEventListener('click', (event) => {
           const td = event.target.closest('td[data-cell="1"]');
           if (!td || !el.contains(td)) return;
-
           const info = td.__cellInfo || null;
           const handler = el.__jsonTable_onCellClick;
           if (info && info.highlightOnClick) {
@@ -259,31 +257,23 @@
         });
         el.__jsonTable_clickBound = true;
       }
-      // Update handler reference for this render
       el.__jsonTable_onCellClick = onCellClick;
     }
 
     function addJsonTable(data, name, title) {
-	
-	  if (document.getElementById(name)) {
-		 return false;
-	  }
-	
       renderJsonTable(name, title, data, null, {
         normalizeEscapedNewlines: true,
         fit: 'content',
         clickableCells: true,
         highlightOnClick: true,
         onCellClick: (info) => {
-          // info.path already includes the clicked attr as last element
           console.log('Clicked cell:', {
             attr: info.colKey,
             val: info.value,
-            path: info.path,                 // e.g., ["orders","items"]
-            rowIndex: info.rowIndex,         // index at this table level
-            rowIndexPath: info.rowIndexPath  // e.g., [0,1,2] from root
+            path: info.path,
+            rowIndex: info.rowIndex,
+            rowIndexPath: info.rowIndexPath
           });
-
           if (window.opener) {
             let evt = 'jsonclick';
             let datum = JSON.stringify({
@@ -296,20 +286,16 @@
           }
         }
       });
-	  
-	  return true;
+      return true;
     }
 
-    // Highlight a cell border by path + rowIndexPath
-    // - path: array of keys ending with the attr (e.g. ["orders","items","price"])
-    // - rowIndexPath: array of row indices from root (e.g. [0,0,1])
     function highlightCellByPath(path, rowIndexPath, name, options = {}) {
       const {
-        className = 'selected',  // CSS class to apply
-        duration = 0,            // ms to keep the highlight; 0 = keep it on
-        scroll = true,           // auto-scroll into view
-        toggle = true,           // if already selected, remove it (toggle)
-        solo = false             // when selecting, clear the class from other cells first
+        className = 'selected',
+        duration = 0,
+        scroll = true,
+        toggle = true,
+        solo = false
       } = options;
 
       const elSel = '#' + name;
@@ -323,105 +309,88 @@
         .find(cell => cell.dataset.path === sPath && cell.dataset.rowIndexPath === sIdx);
 
       if (!td) return false;
-
       const isSelected = td.classList.contains(className);
-
-      // TOGGLE: if already selected, remove and stop here
       if (toggle && isSelected) {
         td.classList.remove(className);
         return true;
       }
-
-      // SOLO: clear other selections first
       if (solo) {
         el.querySelectorAll(`td.${className}`).forEach(c => c.classList.remove(className));
       }
-
       if (scroll && td.scrollIntoView) {
         td.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
       }
-
       td.classList.add(className);
-
       if (duration > 0) {
         setTimeout(() => {
           if (td.classList.contains(className)) td.classList.remove(className);
         }, duration);
       }
+      return true;
+    }
+
+    function addChart(data, name, title) {
+
+      let el = document.getElementById(name);
+	  if (el) {
+		el.remove();
+	  }
+
+//	  document.body.appendChild(document.createElement('br'));
+	  el = document.createElement('div');
+	  el.id = name;
+	  el.appendChild(document.createElement('br'));
+	  document.body.appendChild(el);
+	  
+      let labels = data.find(item => item.name === "labels")?.data;
+      let series = data.filter(item => item.name !== "labels");
+
+      const options = {
+        chart: {type: 'line', width: 500, height: 300, toolbar: {show: true}, animations:{enabled: false}},
+		series: series,
+        xaxis: {categories: labels},
+        title: {text: title, style: {fontSize: '12px', fontWeight: '600'}}		
+      };
+      new ApexCharts(document.querySelector('#' + name), options).render();
+      return true;
+    }
+
+    // ---------- Add Image Viewer ----------
+    function addImg(base64, name, title, width, callbackExt) {
+
+	  let container = document.getElementById(name);
+	  let img;
+      if (!container) {
+		  let container = document.createElement("div");
+		  container.id = name;
+		  document.body.appendChild(container);
+		  container.innerHTML =
+			`<br><span class="json-table title">${title}</span><span class="json-table" style="color:white"> (id=${name})</span><br>`;
+
+		  img = document.createElement("img");
+		  container.appendChild(img);
+      } else {
+		img = container.getElementsByTagName("img")[0];
+	  }
+
+	  img.src = `${base64}`;
+
+	  img.onload = () => {
+		  img.alt = title;
+		  img.style.width = width + "px";
+		  img.style.border = "1px solid #ddd";
+		  img.style.borderRadius = "8px";
+		  img.style.marginTop = "6px";
+		  callbackExt();
+	  };
 
       return true;
     }
 
-
-    function addChart(data, name, title) {
+	window.meta4snap.pmessage = pmessage;
 	
-	  if (document.getElementById(name)) {
-		 return false;
-	  }
-	  
-	  document.body.appendChild(document.createElement('br'));
-
-  	  let el = document.createElement('div');
-	  el.id = name;
-	  document.body.appendChild(el);
-/*
-	  [
-			{
-			  name:"labels",
-			  data: [1,2,3,4,5,6]
-			},  
-			{
-			  name:"Serie A",
-			  data: [1,2,3,4,5,6]
-			}  
-	  ]
-*/
-	  let labels = data.find(item => item.name === "labels")?.data;
-	  let series = data.filter(item => item.name !== "labels");
-
-	  console.log(series);
-
-	  const options = {
-		  chart: { type: 'line', width: 500, height: 300, toolbar: { show: true } },
-		  series: series,
-		  xaxis: { categories: labels },
-		  title: { text: title, style: {fontSize: '12px', fontWeight: '600'} }
-	  };
-
-	  new ApexCharts(document.querySelector('#' + name), options).render();
-	  return true;
-    }
-
 
     // -------- Demo data ----------
-    let data_json5 =
-    [
-      {
-        id: 1,
-        name: "Alice",
-        notes: "First line\r\nSecond line (CRLF)\nThird line (LF)",
-        orders: [
-          { orderId: "A-100", total: 42.5, items: [
-            { sku: "X1", qty: 2, price: 10 },
-            { sku: "Y3", qty: 1, price: 22.5 }
-          ]},
-          { orderId: "A-101", total: 15, items: [
-            { sku: "Z9", qty: 3, price: 5 }
-          ]}
-        ]
-      },
-      {
-        id: 2,
-        name: "Bob",
-        notes: "row1\\r\\nrow2 (escaped in source)\\nrow3",
-        orders: [
-          { orderId: "B-200", total: 8, items: [
-            { sku: "X1", qty: 1, price: 8 }
-          ]}
-        ]
-      }
-    ];
-
     let data_json =
     [
       {
@@ -449,7 +418,6 @@
         ]
       }
     ];
-
   </script>
 </body>
 </html>
