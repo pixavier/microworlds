@@ -2,7 +2,11 @@
 
 ## SnapCon *!* 2023:
 
-https://www.youtube.com/watch?v=bcbM8aeqKs8
+[Microworlds for Industry 4.0](https://www.youtube.com/watch?v=bcbM8aeqKs8)
+
+## SnapCon *!* 2025:
+
+[Prototyping Workflow Automation with Snap *!*](https://www.youtube.com/watch?v=U5Lb2SAwJ1Q)
 
 ## Continuum of microworld views:
 
