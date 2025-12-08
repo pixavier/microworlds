@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>JSON → (Nested) Table with Click Events</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    .table-wrap { overflow: auto; max-width: 100%; }
+
+    .json-table {
+      border-collapse: collapse;
+      table-layout: auto;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 12px;
+    }
+    .json-table.fit-fill { width: 100%; }
+    .json-table.fit-content { width: auto; }
+    @supports (width: max-content) {
+      .json-table.fit-content { width: max-content; min-width: 10%; }
+    }
+
+    .json-table.title { font-size: 16px; background: #fafbfc; }
+
+    .json-table thead th {
+      background: #f6f7f8;
+      font-weight: 600;
+      text-align: left;
+      border: 1px solid #e2e5e9;
+      padding: 6px;
+      white-space: nowrap;
+    }
+    .json-table td {
+      border: 1px solid #e2e5e9;
+      padding: 6px;
+      vertical-align: top;
+    }
+    .json-table td.multiline { white-space: pre-line; overflow-wrap: anywhere; }
+
+    .json-table.nested { font-size: 12px; background: #fafbfc; }
+    .json-table.nested thead th { background: #f0f2f4; }
+    .json-table td > .json-table { margin: 4px; }
+    .json-table small.muted { color: #6b7280; }
+
+    .json-table td.clickable { cursor: pointer; }
+    .json-table td.selected { outline: 2px solid #2563eb; outline-offset: -2px; }
+  </style>
+</head>
+<body>
+  <span class="json-table">Basic Data Viewer</span><br><br>
+  <script src="./lib/JSON5.js"></script>
+  <script src="./lib/mqtt.js"></script>
+  <script src="./lib/apexcharts.js"></script>
+  <script>
+	let broker = 'wss://broker.emqx.io:8084/mqtt';
+	let topic = 'name/data';
+
+	let client = mqtt.connect(broker, {clientId: 'web_' + Math.random().toString(16).slice(2)});
+	client.on('connect', function(connack) {
+		console.log('MQTT connected (' + topic + ')');
+		client.subscribe(topic);
+	});
+	client.on('message', function (topic, payload) {
+		window.meta4snap.pmessage(payload);
+	});
+	
+    // ---------- Demo ----------
+    window.meta4snap = {};
+    let data = [];
+
+    // ---------- Helpers ----------
+    function pmessage(data, callback) {
+      let res = '';
+      let json = JSON5.parse(data);
+      console.log(JSON5.stringify(json));
+      let op = json.op;
+      let param = json.param;
+
+      if (op === 'jsonview') addJsonTable(param.json, param.name, param.title);
+      if (op === 'highlight') highlightCellByPath(param.path, param.rowIndexPath, param.name);
+      if (op === 'chartview') addChart(param.json, param.name, param.title);
+      if (op === 'imgview') addImg(param.base64, param.name, param.title, param.width, callback);
+
+      return res;
+    }
+
+    const isPlainObject = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
+    const setEq = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
+    const isNestedTable = (val) => Array.isArray(val) && val.length > 0 && val.every(isPlainObject);
+
+    // NEW: collect union of keys across all rows
+    function unionKeys(arr) {
+      const s = new Set();
+      for (const row of arr) for (const k of Object.keys(row)) s.add(k);
+      return [...s];
+    }
+    // NEW: decide columns: keep provided order, append new keys not listed
+    function getExpectedColumns(arr, provided) {
+      if (!Array.isArray(arr) || arr.length === 0) return provided ?? [];
+      const all = unionKeys(arr);
+      if (!provided) return all;
+      const out = [...provided];
+      for (const k of all) if (!out.includes(k)) out.push(k);
+      return out;
+    }
+
+    let __tableSeq = 0;
+
+    function createEmptyTable() {
+      const t = document.createElement('table');
+      t.className = 'json-table nested';
+      const tb = document.createElement('tbody');
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.innerHTML = '<small class="muted">(empty)</small>';
+      tr.appendChild(td);
+      tb.appendChild(tr);
+      t.appendChild(tb);
+      return t;
+    }
+
+    // ---------- NEW: Top-level rows coercion ----------
+    // If the top-level JSON is a single object, coerce it to a one-element array.
+    function ensureArrayRows(input) {
+      if (Array.isArray(input)) return input;
+      if (isPlainObject(input)) return [input];
+      throw new Error('Top-level JSON must be an array of objects or a single object.');
+    }
+
+    // ---------- Normalization (ONLY wrap single plain-object properties; never arrays) ----------
+    // normalizeValue(val, wrapSelf):
+    // - If wrapSelf === true and val is a plain object, return [normalizedObject].
+    // - If val is an array, recurse into items WITHOUT wrapping the items themselves.
+    // - Object properties are processed with wrapSelf=true so THEIR object values get wrapped.
+    // - Top-level rows and objects inside arrays are processed with wrapSelf=false (never wrapped).
+    function normalizeValue(val, wrapSelf) {
+      if (val === null || val === undefined) return val;
+
+      if (Array.isArray(val)) {
+        // Recurse into items; items themselves are not wrapped.
+        return val.map(item => normalizeValue(item, /* wrapSelf */ false));
+      }
+
+      if (isPlainObject(val)) {
+        const obj = {};
+        for (const [k, v] of Object.entries(val)) {
+          obj[k] = normalizeValue(v, /* wrapSelf for property values */ true);
+        }
+        return wrapSelf ? [obj] : obj;
+      }
+
+      return val; // primitive
+    }
+
+    // Apply to an array of top-level rows (rows themselves should NOT be wrapped)
+    function normalizeRows_wrapSingleObjects(rows) {
+      if (!Array.isArray(rows)) return rows;
+      return rows.map(row => (isPlainObject(row) ? normalizeValue(row, /* wrapSelf */ false) : row));
+    }
+
+    // ---------- Core builder ----------
+    function buildTable(data, columns = null, level = 0, opts = {}, path = [], rowPath = []) {
+      const {
+        normalizeEscapedNewlines = false,
+        fit = 'content',
+        clickableCells = true,
+        highlightOnClick = false,
+      } = opts;
+
+      if (!Array.isArray(data)) throw new Error('Data must be an array of objects');
+      if (data.length === 0) return createEmptyTable();
+      if (!data.every(isPlainObject)) throw new Error('Each item must be a plain object');
+
+      // NEW: compute union of keys; if user provided columns, keep theirs and append discovered ones
+      const expectedCols = getExpectedColumns(data, columns);
+      const expectedSet = new Set(expectedCols);
+
+      // REMOVED strict row shape validation.
+      // We now allow rows to have missing/extra keys; missing cells render as blank.
+
+      const table = document.createElement('table');
+      const tableId = `t${++__tableSeq}`;
+      table.dataset.tableId = tableId;
+      table.className = 'json-table' + (level > 0 ? ' nested' : '') + (fit === 'fill' ? ' fit-fill' : ' fit-content');
+
+      // THEAD
+      const thead = document.createElement('thead');
+      const trHead = document.createElement('tr');
+      expectedCols.forEach((key) => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+      table.appendChild(thead);
+
+      // TBODY
+      const tbody = document.createElement('tbody');
+      data.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        const currentRowPath = [...rowPath, rowIndex];
+
+        expectedCols.forEach((colKey) => {
+          const td = document.createElement('td');
+          let val = Object.prototype.hasOwnProperty.call(row, colKey) ? row[colKey] : undefined; // blank if missing
+          const pathWithAttr = [...path, colKey];
+
+          td.dataset.cell = "1";
+          td.dataset.tableId = tableId;
+          td.dataset.level = String(level);
+          td.dataset.rowIndex = String(rowIndex);
+          td.dataset.colKey = colKey;
+          td.dataset.path = JSON.stringify(pathWithAttr);
+          td.dataset.rowIndexPath = JSON.stringify(currentRowPath);
+          if (clickableCells) td.classList.add('clickable');
+
+          td.__cellInfo = {
+            tableId,
+            level,
+            path: pathWithAttr,
+            rowIndex,
+            rowIndexPath: currentRowPath,
+            colKey,
+            value: val,
+            row,
+            columns: [...expectedCols],
+            highlightOnClick
+          };
+
+          if (isNestedTable(val)) {
+            const nested = buildTable(val, null, level + 1, opts, [...path, colKey], currentRowPath);
+            td.appendChild(nested);
+          } else if (Array.isArray(val)) {
+            const allPrimitive = val.every(v => v === null || (typeof v !== 'object'));
+            let s = allPrimitive ? val.join(', ') : JSON.stringify(val);
+            if (normalizeEscapedNewlines) s = s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+            td.textContent = s;
+            td.classList.add('multiline');
+            td.__cellInfo.value = s;
+          } else if (typeof val === 'string') {
+            if (val.startsWith("data:image/")) {
+              const img = document.createElement("img");
+              img.src = val;
+              img.alt = colKey;
+              img.style.maxWidth = "120px";
+              img.style.maxHeight = "120px";
+              img.style.border = "1px solid #ddd";
+              img.style.borderRadius = "6px";
+              td.appendChild(img);
+              td.__cellInfo.value = "[image]";
+            } else {
+              if (normalizeEscapedNewlines) val = val.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+              td.textContent = val;
+              td.classList.add('multiline');
+              td.__cellInfo.value = val;
+            }
+          } else if (isPlainObject(val) && Object.keys(val || {}).length > 0) {
+            let s = JSON.stringify(val);
+            if (normalizeEscapedNewlines) s = s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+            td.textContent = s;
+            td.classList.add('multiline');
+            td.__cellInfo.value = s;
+          } else if (val === null || val === undefined) {
+            // BLANK for missing/undefined/null
+            td.textContent = '';
+            td.__cellInfo.value = null;
+          } else {
+            td.textContent = String(val);
+            td.__cellInfo.value = String(val);
+          }
+
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      return table;
+    }
+
+    // ---------- Public API ----------
+    function renderJsonTable(name, title, data, columns = null, options = {}) {
+
+      // Coerce top-level: if a single object, wrap to a one-element array BEFORE normalization
+      const rows = ensureArrayRows(data);
+
+      // Normalize so any single object-valued property becomes a one-element array
+      const normalizedData = normalizeRows_wrapSingleObjects(rows);
+
+      let el = document.getElementById(name);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = name;
+        document.body.appendChild(el);
+        const e2 = document.createElement('br');
+        document.body.appendChild(e2);
+      }
+
+      const onCellClick = typeof options.onCellClick === 'function'
+        ? options.onCellClick
+        : (info) => { console.log('Cell clicked:', info); };
+
+      el.innerHTML = `<span class="json-table title">${title}</span><span class="json-table" style="color:white"> (id=${name})</span>`;
+      el.appendChild(buildTable(normalizedData, columns, 0, options, [], []));
+
+      if (!el.__jsonTable_clickBound) {
+        el.addEventListener('click', (event) => {
+          const td = event.target.closest('td[data-cell="1"]');
+          if (!td || !el.contains(td)) return;
+          const info = td.__cellInfo || null;
+          const handler = el.__jsonTable_onCellClick;
+          if (info && info.highlightOnClick) {
+            td.classList.toggle('selected');
+            setTimeout(function(){td.classList.remove('selected');}, 750);
+          }
+          if (typeof handler === 'function') {
+            handler({ ...info, event });
+          }
+        });
+        el.__jsonTable_clickBound = true;
+      }
+      el.__jsonTable_onCellClick = onCellClick;
+    }
+
+    function addJsonTable(data, name, title) {
+      renderJsonTable(name, title, data, null, {
+        normalizeEscapedNewlines: true,
+        fit: 'content',
+        clickableCells: true,
+        highlightOnClick: true,
+        onCellClick: (info) => {
+          console.log('Clicked cell:', {
+            attr: info.colKey,
+            val: info.value,
+            path: info.path,
+            rowIndex: info.rowIndex,
+            rowIndexPath: info.rowIndexPath
+          });
+          if (window.opener) {
+            let evt = 'jsonclick';
+            let datum = JSON.stringify({
+              attr: info.colKey,
+              val: info.value,
+              path: info.path,
+              rowIndexPath: info.rowIndexPath
+            });
+            window.opener.ide && window.opener.ide.broadcast && window.opener.ide.broadcast(evt, null, datum);
+          }
+        }
+      });
+      return true;
+    }
+
+    function highlightCellByPath(path, rowIndexPath, name, options = {}) {
+      const {
+        className = 'selected',
+        duration = 0,
+        scroll = true,
+        toggle = true,
+        solo = false
+      } = options;
+
+      const elSel = '#' + name;
+      const el = typeof elSel === 'string' ? document.querySelector(elSel) : elSel;
+      if (!el) throw new Error('Mount element not found');
+
+      const sPath = Array.isArray(path) ? JSON.stringify(path) : String(path);
+      const sIdx  = Array.isArray(rowIndexPath) ? JSON.stringify(rowIndexPath) : String(rowIndexPath);
+
+      const td = Array.from(el.querySelectorAll('td[data-cell="1"]'))
+        .find(cell => cell.dataset.path === sPath && cell.dataset.rowIndexPath === sIdx);
+
+      if (!td) return false;
+      const isSelected = td.classList.contains(className);
+      if (toggle && isSelected) {
+        td.classList.remove(className);
+        return true;
+      }
+      if (solo) {
+        el.querySelectorAll(`td.${className}`).forEach(c => c.classList.remove(className));
+      }
+      if (scroll && td.scrollIntoView) {
+        td.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      }
+      td.classList.add(className);
+      if (duration > 0) {
+        setTimeout(() => {
+          if (td.classList.contains(className)) td.classList.remove(className);
+        }, duration);
+      }
+      return true;
+    }
+
+    function addChart(data, name, title) {
+
+      let el = document.getElementById(name);
+      if (el) {
+        el.remove();
+      }
+
+      el = document.createElement('div');
+      el.id = name;
+      el.appendChild(document.createElement('br'));
+      document.body.appendChild(el);
+
+      let labels = data.find(item => item.name === "labels")?.data;
+      let series = data.filter(item => item.name !== "labels");
+
+      const options = {
+        chart: {type: 'line', width: 500, height: 300, toolbar: {show: true}, animations:{enabled: false}},
+        series: series,
+        xaxis: {categories: labels},
+        title: {text: title, style: {fontSize: '12px', fontWeight: '600'}}
+      };
+      new ApexCharts(document.querySelector('#' + name), options).render();
+      return true;
+    }
+
+    // ---------- Add Image Viewer ----------
+    function addImg(base64, name, title, width, callbackExt) {
+
+      let container = document.getElementById(name);
+      let img;
+      if (!container) {
+        let container = document.createElement("div");
+        container.id = name;
+        document.body.appendChild(container);
+        container.innerHTML =
+          `<br><span class="json-table title">${title}</span><span class="json-table" style="color:white"> (id=${name})</span><br>`;
+
+        img = document.createElement("img");
+        container.appendChild(img);
+      } else {
+        img = container.getElementsByTagName("img")[0];
+      }
+
+      img.src = `${base64}`;
+
+      img.onload = () => {
+        img.alt = title;
+        img.style.width = width + "px";
+        img.style.border = "1px solid #ddd";
+        img.style.borderRadius = "8px";
+        img.style.marginTop = "6px";
+        callbackExt();
+      };
+
+      return true;
+    }
+
+    window.meta4snap.pmessage = pmessage;
+
+    // -------- Demo data ----------
+    let data_json =
+    [
+      {
+        "id": 1,
+        "name": "Alice",
+        "notes": "First line\r\nSecond line (CRLF)\nThird line (LF)",
+        "profile": { "age": 28, "city": "Berlin" },     // becomes [{...}]
+        "avatar": { "url": "data:image/png;base64,AAA..." }, // becomes [{...}]
+        "orders": [
+          { "orderId": "A-100", "total": 42.5, "billing": { "method": "card" }, "items": [
+            { "sku": "X1", "qty": 2, "price": 10, "meta": { "fragile": true } }, // meta -> [{...}]
+            { "sku": "Y3", "qty": 1, "price": 22.5 }
+          ]},
+          { "orderId": "A-101", "total": 15, "items": [
+            { "sku": "Z9", "qty": 3, "price": 5 }
+          ]}
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Bob",
+        "notes": "row1\\r\\nrow2 (escaped in source)\\nrow3",
+        "profile": { "age": 34, "city": "Madrid" },     // becomes [{...}]
+        "orders": [
+          { "orderId": "B-200", "total": 8, "items": [
+            { "sku": "X1", "qty": 1, "price": 8 }
+          ]}
+        ],
+        "newField": "shows up as a new column"
+      }
+    ];
+
+    // Auto-render demo table on load
+    window.addEventListener('DOMContentLoaded', () => {
+//      addJsonTable(data_json, 'demoTable', '');
+    });
+  </script>
+</body>
+</html>
