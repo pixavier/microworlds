@@ -659,7 +659,7 @@ function loadGltfAsync(param, callbackTopic) {
           inspectObject(obj);
 //        fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
 //		  callbackExt();
-		  client.publish(`name/${channel}/3dresp/loadGltfAsync", "gtlf loaded");
+		  client.publish(`name/${channel}/3dresp/loadGltfAsync`, "gtlf loaded");
       }
     );
   }
