@@ -18,7 +18,8 @@
 <!-- Event name: <input type="text" id="evt" size="8"> Data: <input type="text"  size="25" id="datum"> -->
 <span>Basic Euclidean 3D Viewer</span>&nbsp;&nbsp;-&nbsp;&nbsp;
 <span>Channel</span>&nbsp;<input type="text" id="channel" value="upc">
-<input type="button" onclick="setChannel()" value="Connect" class="channel"><br><br>
+<input type="button" onclick="setChannel()" value="Connect" class="channel">&nbsp;&nbsp;-&nbsp;&nbsp;
+(<span id="state">Disconnected</span>)<br><br>
 <script src="./lib/JSON5.js"></script>
 <script src="./lib/mqtt.js"></script>
 <script>
@@ -26,7 +27,8 @@
   let channel = 'upc';
   let topic = `name/${channel}/3d`;
   let client = null;
-
+  let state = 'Not connected';
+  
   window.onresize = function(){location.reload();};
     
   function setChannel() {
@@ -35,6 +37,7 @@
 	client = mqtt.connect(broker, {clientId: 'web_' + Math.random().toString(16).slice(2)});
 	client.on('connect', function(connack) {
 		console.log('MQTT connected (' + topic + ')');
+		document.getElementById('state').value = 'Connected';
 		client.subscribe(topic);
 	});
 		client.on('message', function (topic, payload) {
