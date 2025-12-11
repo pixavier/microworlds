@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     .table-wrap { overflow: auto; max-width: 100%; }
+    .channel {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-size: 12px;
+    }
 
     .json-table {
       border-collapse: collapse;
@@ -46,13 +50,14 @@
   </style>
 </head>
 <body>
-  <span class="json-table">Basic Data Viewer</span><br><br>
+  <span class="json-table">Basic Data Viewer</span>&nbsp;&nbsp;-&nbsp;&nbsp;
+  <span class="channel">Channel</span>&nbsp;<input type="text" id="channel" value="upc" class="channel"><input type="button" onclick="setChannel()" value="Ok" class="channel"><br><br>
   <script src="./lib/JSON5.js"></script>
   <script src="./lib/mqtt.js"></script>
   <script src="./lib/apexcharts.js"></script>
   <script>
 	let broker = 'wss://broker.emqx.io:8084/mqtt';
-	let topic = 'name/data';
+	let topic = 'name/upc/data';
 
 	let client = mqtt.connect(broker, {clientId: 'web_' + Math.random().toString(16).slice(2)});
 	client.on('connect', function(connack) {
@@ -82,6 +87,11 @@
 
       return res;
     }
+	
+	function setChannel() {
+		let channel = document.getElementById('channel');
+		topic = `name/${channel}/data`;
+	}
 
     const isPlainObject = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
     const setEq = (a, b) => a.size === b.size && [...a].every(k => b.has(k));
