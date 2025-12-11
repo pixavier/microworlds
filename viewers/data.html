@@ -355,8 +355,8 @@
 			  val: info.value,
 			  path: info.path,
 			  rowIndexPath: info.rowIndexPath
-			});
-			client.publish(`name/${channel}/dataclick`, JSON.stringify(datum, null, 2));  
+			}, null, 2);
+			client.publish(`name/${channel}/dataclick`, datum);  
         }
       });
       return true;

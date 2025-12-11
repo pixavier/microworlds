@@ -120,7 +120,7 @@ function pickAtClientXY(clientX, clientY) {
 }
 
 function announcePick(leafObj) {
-  console.log(leafObj);
+  console.log(leafObj);	
   const root = getTopLevel(leafObj);
   const info = {
     name: leafObj.name,
@@ -130,8 +130,8 @@ function announcePick(leafObj) {
   };
   
   let evt = "click3d";
-  let datum = JSON5.stringify(info);
-  client.publish(`name/${channel}/3dclick`, JSON.stringify(datum, null, 2));  
+  let datum = JSON5.stringify(info, null, 2);
+  client.publish(`name/${channel}/3dclick`, datum);  
   console.log("Picked:", info);
 }
 // --------------------------------------
