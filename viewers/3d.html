@@ -40,6 +40,7 @@
   function setChannel() {
 	channel = document.getElementById('channel');
 	topic = `name/${channel}/3d`;
+	client = mqtt.connect(broker, {clientId: 'web_' + Math.random().toString(16).slice(2)});
   }  
 </script>
 
