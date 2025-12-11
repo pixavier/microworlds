@@ -453,7 +453,7 @@
         img.style.border = "1px solid #ddd";
         img.style.borderRadius = "8px";
         img.style.marginTop = "6px";
-		client.publish(`name/${channel}/dataimgloaded`, null);  
+		client.publish(`name/${channel}/dataimgloaded`, 'Img loaded');  
       };
 
       return true;
