@@ -249,7 +249,7 @@ function getLight1Placement() {
     res[4] = THREE.Math.radToDeg(obj.rotation.y);
     res[5] = THREE.Math.radToDeg(obj.rotation.z);
   }
-  client.publish("name/3dresp/getLight1Placement", JSON.stringify(res, null, 2));  
+  client.publish(`name/${channel}/3dresp/getLight1Placement`, JSON.stringify(res, null, 2));  
   return JSON.stringify(res, null, 2);
 }
 function setLight2Color(param) { window.meta4snap.light2.color.setHex(parseInt(param.color)); return true; }
@@ -268,7 +268,7 @@ function getLight2Placement() {
     res[4] = THREE.Math.radToDeg(obj.rotation.y);
     res[5] = THREE.Math.radToDeg(obj.rotation.z);
   }
-  client.publish("name/3dresp/getLight2Placement", JSON.stringify(res, null, 2));  
+  client.publish(`name/${channel}/3dresp/getLight2Placement`, JSON.stringify(res, null, 2));  
   return JSON.stringify(res, null, 2);
 }
 function setLight3Color(param) { window.meta4snap.light3.color.setHex(parseInt(param.color)); return true; }
@@ -287,7 +287,7 @@ function getLight3Placement() {
     res[4] = THREE.Math.radToDeg(obj.rotation.y);
     res[5] = THREE.Math.radToDeg(obj.rotation.z);
   }
-  client.publish("name/3dresp/getLight3Placement", JSON.stringify(res, null, 2));  
+  client.publish(`name/${channel}/3dresp/getLight3Placement`, JSON.stringify(res, null, 2));  
   return JSON.stringify(res, null, 2);
 }
 
@@ -659,7 +659,7 @@ function loadGltfAsync(param, callbackTopic) {
           inspectObject(obj);
 //        fitCameraToObject(window.meta4snap.camera, window.meta4snap.controls, obj);
 //		  callbackExt();
-		  client.publish("name/3dresp/loadGltfAsync", "gtlf loaded");
+		  client.publish(`name/${channel}/3dresp/loadGltfAsync", "gtlf loaded");
       }
     );
   }
