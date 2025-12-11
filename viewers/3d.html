@@ -23,7 +23,8 @@
 <script src="./lib/mqtt.js"></script>
 <script>
   let broker = 'wss://broker.emqx.io:8084/mqtt';
-  let topic = 'name/upc/3d';
+  let channel = 'upc';
+  let topic = `name/${channel}/3d`;
 
   window.onresize = function(){location.reload();};
   
@@ -37,7 +38,7 @@
   });
   
   function setChannel() {
-	let channel = document.getElementById('channel');
+	channel = document.getElementById('channel');
 	topic = `name/${channel}/3d`;
   }  
 </script>

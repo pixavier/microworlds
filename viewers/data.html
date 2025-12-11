@@ -51,13 +51,15 @@
 </head>
 <body>
   <span class="json-table">Basic Data Viewer</span>&nbsp;&nbsp;-&nbsp;&nbsp;
-  <span class="channel">Channel</span>&nbsp;<input type="text" id="channel" value="upc" class="channel"><input type="button" onclick="setChannel()" value="Ok" class="channel"><br><br>
+  <span class="channel">Channel</span>&nbsp;<input type="text" id="channel" value="upc" class="channel">
+  <input type="button" onclick="setChannel()" value="Ok" class="channel"><br><br>
   <script src="./lib/JSON5.js"></script>
   <script src="./lib/mqtt.js"></script>
   <script src="./lib/apexcharts.js"></script>
   <script>
 	let broker = 'wss://broker.emqx.io:8084/mqtt';
-	let topic = 'name/upc/data';
+	let channel = 'upc';
+	let topic = `name/${channel}/data`;
 
 	let client = mqtt.connect(broker, {clientId: 'web_' + Math.random().toString(16).slice(2)});
 	client.on('connect', function(connack) {
@@ -89,7 +91,7 @@
     }
 	
 	function setChannel() {
-		let channel = document.getElementById('channel');
+		channel = document.getElementById('channel');
 		topic = `name/${channel}/data`;
 	}
 
