@@ -78,7 +78,7 @@
       if (op === 'jsonview') addJsonTable(param.json, param.name, param.title);
       if (op === 'highlight') highlightCellByPath(param.path, param.rowIndexPath, param.name);
       if (op === 'chartview') addChart(param.json, param.name, param.title);
-      if (op === 'imgview') addImg(param.base64, param.name, param.title, param.width, callback);
+      if (op === 'imgview') addImg(param.base64, param.name, param.title, param.width);
 
       return res;
     }
@@ -343,22 +343,20 @@
         clickableCells: true,
         highlightOnClick: true,
         onCellClick: (info) => {
-          console.log('Clicked cell:', {
-            attr: info.colKey,
-            val: info.value,
-            path: info.path,
-            rowIndex: info.rowIndex,
-            rowIndexPath: info.rowIndexPath
-          });
-          if (window.opener) {
-            let evt = 'jsonclick';
-            let datum = JSON.stringify({
-              attr: info.colKey,
-              val: info.value,
-              path: info.path,
-              rowIndexPath: info.rowIndexPath
-            });
-            window.opener.ide && window.opener.ide.broadcast && window.opener.ide.broadcast(evt, null, datum);
+			console.log('Clicked cell:', {
+				attr: info.colKey,
+				val: info.value,
+				path: info.path,
+				rowIndex: info.rowIndex,
+				rowIndexPath: info.rowIndexPath
+			});
+			let datum = JSON.stringify({
+			  attr: info.colKey,
+			  val: info.value,
+			  path: info.path,
+			  rowIndexPath: info.rowIndexPath
+			});
+			client.publish(`name/${channel}/dataclick`, JSON.stringify(datum, null, 2));  
           }
         }
       });
@@ -431,7 +429,7 @@
     }
 
     // ---------- Add Image Viewer ----------
-    function addImg(base64, name, title, width, callbackExt) {
+    function addImg(base64, name, title, width) {
 
       let container = document.getElementById(name);
       let img;
@@ -456,7 +454,7 @@
         img.style.border = "1px solid #ddd";
         img.style.borderRadius = "8px";
         img.style.marginTop = "6px";
-        callbackExt();
+		client.publish(`name/${channel}/dataimgloaded`, null);  
       };
 
       return true;
