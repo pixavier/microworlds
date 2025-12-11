@@ -89,7 +89,7 @@
 		client = mqtt.connect(broker, {clientId: 'web_' + Math.random().toString(16).slice(2)});
 		client.on('connect', function(connack) {
 			console.log('MQTT connected (' + topic + ')');
-			document.getElementById('state').value = 'Connected';
+			document.getElementById('state').innerText = 'Connected';
 			client.subscribe(topic);
 		});
 		client.on('message', function (topic, payload) {
