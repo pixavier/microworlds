@@ -52,8 +52,9 @@
 <body>
   <span class="json-table">Basic Data Viewer</span>&nbsp;&nbsp;-&nbsp;&nbsp;
   <span class="channel">Channel</span>&nbsp;<input type="text" id="channel" value="upc" class="channel">&nbsp;&nbsp;-&nbsp;&nbsp;
+  <input type="button" onclick="setChannel()" value="Connect" class="channel">&nbsp;&nbsp;-&nbsp;&nbsp;
   (<span id="state" class="channel">Disconnected</span>)<br><br>
-  <input type="button" onclick="setChannel()" value="Connect" class="channel"><br><br>
+  <br><br>
   <script src="./lib/JSON5.js"></script>
   <script src="./lib/mqtt.js"></script>
   <script src="./lib/apexcharts.js"></script>
@@ -501,3 +502,4 @@
   </script>
 </body>
 </html>
+
