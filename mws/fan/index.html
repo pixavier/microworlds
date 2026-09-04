@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Microworld</title>
+
+  <link rel="stylesheet" href="index.css" />
+  <script src="index.js" defer></script>
+</head>
+<body>
+  <main class="split" id="split">
+    <section class="pane" aria-label="Emisor">
+      <iframe src="https://snap.berkeley.edu/snap/snap.html#run:https://pixavier.github.io/microworlds/mws/fan/fan.xml&editMode" title="Side Left"></iframe>
+    </section>
+    <div class="divider" id="divider" role="separator" aria-label="Cambiar ancho de los paneles" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" tabindex="0"></div>
+    <section class="pane" aria-label="Receptor">
+      <iframe id="side-b" src="https://pixavier.github.io/microworlds/mws/fan/fan.html" title="Side Right"></iframe>
+    </section>
+  </main>
+</body>
+
+  <script>
+    const randomValue = Math.floor(Math.random() * 1001);
+    const channel = encodeURIComponent(`upc_${randomValue}`);
+
+    const iframeA = document.querySelector('iframe[title="Side Left"]');
+    const iframeB = document.querySelector('iframe[title="Side Right"]');
+
+    iframeA.src = `${iframeA.src}&param=${channel}`;
+    iframeB.src = `${iframeB.src}?ch=${channel}`;
+	
+//	console.log(iframeA.src);
+
+  </script>
+</html>
