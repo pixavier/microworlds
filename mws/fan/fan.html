@@ -92,10 +92,7 @@
       <h2>MQTT</h2>
       <div class="status"><span id="mqttDot" class="dot"></span><strong id="mqttStatus">Disconnected</strong></div>
       <label for="broker">MQTT broker</label>
-      <select id="broker" aria-label="MQTT broker">
-        <option value="wss://broker.emqx.io:8084/mqtt" selected>broker.emqx.io</option>
-        <option value="wss://test.mosquitto.org:8081">test.mosquitto.org</option>
-      </select>
+      <input id="broker" value="broker.emqx.io" />
       <label for="topicBase">Topic base</label>
       <input id="topicBase" value="demo/domestic-fan" />
       <div class="row">
@@ -247,17 +244,21 @@
   fan.rotation.y = -.12;
 
   // MQTT + simulation state
-  const state = { power:false, speed:1 };
-  const angularVelocity = {1: 4.0, 2: 8.0, 3: 13.5}; // rad/s visualized, not physical RPM
+  let state = { power:false, speed:1 };
+  let angularVelocity = {1: 4.0, 2: 8.0, 3: 13.5}; // rad/s visualized, not physical RPM
   let client = null;
   let last = performance.now();
 
-  const logEl = document.getElementById('log');
-  const brokerEl = document.getElementById('broker');
-  const baseEl = document.getElementById('topicBase');
-  const mqttDot = document.getElementById('mqttDot');
-  const mqttStatus = document.getElementById('mqttStatus');
-  const channel = new URLSearchParams(window.location.search).get('ch')?.trim().replace(/^\/+|\/+$/g, '') || '';
+  let logEl = document.getElementById('log');
+  let brokerEl = document.getElementById('broker');
+  let baseEl = document.getElementById('topicBase');
+  let mqttDot = document.getElementById('mqttDot');
+  let mqttStatus = document.getElementById('mqttStatus');
+  let param = new URLSearchParams(window.location.search).get('param');
+  param = param ? param : 'upc';
+  let channel = param.split('|')[0];
+  let broker = param.split('|')[1] ? param.split('|')[1] : 'broker.emqx.io';
+  brokerEl.value = broker;
 
   function log(msg){ const t=new Date().toLocaleTimeString(); logEl.textContent += `[${t}] ${msg}\n`; logEl.scrollTop=logEl.scrollHeight; }
   function base(){
@@ -315,7 +316,15 @@
 
   function connectMqtt(){
     if(client) try{client.end(true);}catch{}
-    const url=brokerEl.value.trim();
+    let url = broker;
+	if (broker == 'broker.emqx.io') {
+		url = 'wss://' + broker + ':8084/mqtt';
+	} else if (broker == 'test.mosquitto.org') {
+		url = 'wss://' + broker + ':8081';
+	} else if (broker == 'broker.hivemq.com') {
+		url = 'wss://' + broker + ':8884/mqtt';
+	}
+	
     if(!url){ mqttUi('Broker URL required','bad'); log('MQTT: broker URL is empty'); return; }
     mqttUi('Connecting…','connecting'); log(`Connecting to ${url}`);
     client=mqtt.connect(url,{ clientId:'fan_web_'+Math.random().toString(16).slice(2,10), clean:true, connectTimeout:8000, reconnectPeriod:3000 });

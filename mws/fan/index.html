@@ -11,26 +11,29 @@
 <body>
   <main class="split" id="split">
     <section class="pane" aria-label="Emisor">
-      <iframe src="https://snap.berkeley.edu/snap/snap.html#run:https://pixavier.github.io/microworlds/mws/fan/fan.xml&editMode" title="Side Left"></iframe>
+      <iframe src="https://snap.berkeley.edu/snap/snap.html#run:https://xavierpi.com/fan/bck/fan.xml&editMode" title="Side Left"></iframe>
     </section>
     <div class="divider" id="divider" role="separator" aria-label="Cambiar ancho de los paneles" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" tabindex="0"></div>
     <section class="pane" aria-label="Receptor">
-      <iframe id="side-b" src="https://pixavier.github.io/microworlds/mws/fan/fan.html" title="Side Right"></iframe>
+      <iframe src="fan.html" title="Side Right"></iframe>
     </section>
   </main>
 </body>
 
   <script>
-    const randomValue = Math.floor(Math.random() * 1001);
-    const channel = encodeURIComponent(`upc_${randomValue}`);
+    let randomValue = Math.floor(Math.random() * 1001);
+    let channel = encodeURIComponent(`upc_${randomValue}`);
+    let broker = new URLSearchParams(window.location.search).get('broker');
+	broker = broker ? broker : '';
+	console.log('broker: ' + broker);
 
-    const iframeA = document.querySelector('iframe[title="Side Left"]');
-    const iframeB = document.querySelector('iframe[title="Side Right"]');
+    let iframeA = document.querySelector('iframe[title="Side Left"]');
+    let iframeB = document.querySelector('iframe[title="Side Right"]');
 
-    iframeA.src = `${iframeA.src}&param=${channel}`;
-    iframeB.src = `${iframeB.src}?ch=${channel}`;
+    iframeA.src = `${iframeA.src}&param=${channel}|${broker}`;
+    iframeB.src = `${iframeB.src}?param=${channel}|${broker}`;
 	
-//	console.log(iframeA.src);
+	console.log(iframeA.src);
 
   </script>
 </html>
