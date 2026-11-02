@@ -316,14 +316,7 @@
 
   function connectMqtt(){
     if(client) try{client.end(true);}catch{}
-    let url = broker;
-	if (broker == 'broker.emqx.io') {
-		url = 'wss://' + broker + ':8084/mqtt';
-	} else if (broker == 'test.mosquitto.org') {
-		url = 'wss://' + broker + ':8081';
-	} else if (broker == 'broker.hivemq.com') {
-		url = 'wss://' + broker + ':8884/mqtt';
-	}
+    let url = 'wss://master.iotvertebrae.com:8081';
 	
     if(!url){ mqttUi('Broker URL required','bad'); log('MQTT: broker URL is empty'); return; }
     mqttUi('Connecting…','connecting'); log(`Connecting to ${url}`);
